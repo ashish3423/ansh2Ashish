@@ -55,10 +55,11 @@ class AuthController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
-        Auth::login($user);
-        $request->session()->regenerate();
+        // Auth::login($user);
+        // $request->session()->regenerate();
 
-        return redirect()->route('dashboard')->with('status', 'Your account is ready.');
+        //return redirect()->route('dashboard')->with('status', 'Your account is ready.');
+        return redirect()->route('login')->with('status', 'User Registered Successfully.Please login to continue.');
     }
 
     public function logout(Request $request): RedirectResponse

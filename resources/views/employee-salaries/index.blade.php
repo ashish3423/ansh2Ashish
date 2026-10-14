@@ -4,7 +4,7 @@
 @section('breadcrumb', 'Employee Salaries')
 
 @section('content')
-<div class="container-fluid py-4">
+<div class="container-fluid py-4 salary-management-page">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
             <h3 class="mb-1">Employee Salaries</h3>
@@ -69,15 +69,48 @@
                                 <td>{{ number_format((float) $salary->net_salary, 2) }}</td>
                                 <td>{{ \Carbon\Carbon::parse($salary->effective_from)->format('d-m-Y') }}</td>
                                 <td>{{ $salary->effective_to ? \Carbon\Carbon::parse($salary->effective_to)->format('d-m-Y') : '—' }}</td>
-                                <td class="text-nowrap">
-                                    <button type="button" class="btn btn-sm btn-info view-salary-btn"
-                                    data-salary="{{ rawurlencode(json_encode($salary)) }}">View</button>
-                                    <button type="button" class="btn btn-sm btn-warning edit-salary-btn"
-                                            data-salary="{{ rawurlencode(json_encode($salary)) }}">Edit</button>
-                                    <button type="button" class="btn btn-sm btn-danger delete-salary-btn"
-                                            data-id="{{ $salary->id }}"
-                                            data-name="{{ $salary->employee_code }} — {{ $salary->first_name }} {{ $salary->last_name }}">Delete</button>
-                                </td>
+                               
+<td class="salary-actions">
+    <!-- Edit icon -->
+    <button type="button"
+            class="btn btn-link salary-edit-icon"
+            title="Edit Salary"
+            aria-label="Edit Salary"
+            data-id="{{ $salary->id }}">
+        <i class="bi bi-pencil-square"></i>
+    </button>
+
+    <!-- Three dots menu -->
+<div class="dropdown dropup d-inline-block">
+        <button type="button"
+                class="btn btn-link salary-more-btn"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                aria-label="More actions">
+            <i class="bi bi-three-dots-vertical"></i>
+        </button>
+
+        <ul class="dropdown-menu dropdown-menu-end salary-action-menu">
+            <li>
+                <button type="button"
+                        class="dropdown-item view-salary-btn"
+                        data-id="{{ $salary->id }}">
+                    <i class="bi bi-eye me-2"></i>
+                    View Details
+                </button>
+            </li>
+            <li>
+                <button type="button"
+                        class="dropdown-item text-danger delete-salary-btn"
+                        data-id="{{ $salary->id }}">
+                    <i class="bi bi-trash3 me-2"></i>
+                    Delete
+                </button>
+            </li>
+        </ul>
+    </div>
+</td>
+
                             </tr>
                         @empty
                             <tr><td colspan="11" class="text-center py-4">No salary records found.</td></tr>

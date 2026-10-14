@@ -73,6 +73,14 @@ class EmployeeController extends Controller
             'phone' => 'nullable|string|max:20',
             'department' => 'nullable|string|max:100',
             'designation' => 'nullable|string|max:100',
+
+            'aadhar_number' => 'nullable|string|max:100',
+            'driving_license_number' => 'nullable|string|max:100',
+            'account_number' => 'nullable|string|max:100',
+            'ifsc_code' => 'nullable|string|max:100',
+            'uan_number' => 'nullable|string|max:100',
+            'esi_number' => 'nullable|string|max:100',
+
             'joining_date' => 'nullable|date',
             'leaving_date' => 'nullable|date|after_or_equal:joining_date',
             'status' => 'required|in:active,inactive',
@@ -109,6 +117,14 @@ class EmployeeController extends Controller
             'phone' => 'nullable|string|max:20',
             'department' => 'nullable|string|max:100',
             'designation' => 'nullable|string|max:100',
+
+            'aadhar_number' => 'nullable|string|max:100',
+            'driving_license_number' => 'nullable|string|max:100',
+            'account_number' => 'nullable|string|max:100',
+            'ifsc_code' => 'nullable|string|max:100',
+            'uan_number' => 'nullable|string|max:100',
+            'esi_number' => 'nullable|string|max:100',
+
             'joining_date' => 'nullable|date',
             'leaving_date' => 'nullable|date|after_or_equal:joining_date',
             'status' => 'required|in:active,inactive',

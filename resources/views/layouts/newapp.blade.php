@@ -18,7 +18,13 @@
     <link rel="stylesheet"
           href="{{ asset('css/style.css') }}">
 
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
   
+<link rel="stylesheet"
+      href="{{ asset('css/employee-management.css') }}">
+
 
     <script src="{{ asset('js/config.js') }}"></script>
     <script src="{{ asset('js/color-modes.js') }}"></script>
@@ -32,7 +38,7 @@
         @include('layouts.header')
 
         <div class="body flex-grow-1">
-            <div class="container-lg px-4">
+            <div class="container-lg px-4 mw-100">
                 @yield('content')
             </div>
         </div>

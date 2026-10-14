@@ -4,7 +4,7 @@
 
 @section('breadcrumb', 'Employee Management')
 
-<div class="container-fluid py-4">
+<div class="container-fluid py-4 employee-management-page">
 
     {{-- Page Header --}}
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
@@ -152,25 +152,57 @@
                                     @endif
                                 </td>
 
-                                <td>
+                               
+<td class="employee-actions">
+    <!-- Edit Icon -->
+    <button
+        type="button"
+        class="btn btn-link edit-icon-btn edit-employee-btn"
+        title="Edit Employee"
+        aria-label="Edit Employee"
+        data-employee="{{ rawurlencode(json_encode($employee)) }}">
+        <i class="bi bi-pencil-square"></i>
+    </button>
 
-                                <button type="button" class="btn btn-sm btn-info view-employee-btn"
-        data-employee="{{ rawurlencode(json_encode($employee)) }}">View</button>
-                                    <button
-                                        type="button"
-                                        class="btn btn-sm btn-warning edit-employee-btn"
-                                        data-employee="{{ rawurlencode(json_encode($employee)) }}">
-                                        Edit
-                                    </button>
+    <!-- Three Dots Menu -->
+    <div class="dropdown d-inline-block">
+        <button
+            type="button"
+            class="btn btn-link more-actions-btn"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+            aria-label="More actions"
+            title="More actions">
+            <i class="bi bi-three-dots-vertical"></i>
+        </button>
 
-                                    <button
-                                        type="button"
-                                        class="btn btn-sm btn-danger delete-employee-btn"
-                                        data-id="{{ $employee->id }}"
-                                        data-name="{{ $employee->first_name }} {{ $employee->last_name }}">
-                                        Delete
-                                    </button>
-                                </td>
+        <ul class="dropdown-menu dropdown-menu-end employee-action-menu">
+            <!-- View -->
+            <li>
+                <button
+                    type="button"
+                    class="dropdown-item view-employee-btn"
+                    data-employee="{{ rawurlencode(json_encode($employee)) }}">
+                    <i class="bi bi-eye me-2"></i>
+                    View Details
+                </button>
+            </li>
+
+            <!-- Delete -->
+            <li>
+                <button
+                    type="button"
+                    class="dropdown-item text-danger delete-employee-btn"
+                    data-id="{{ $employee->id }}"
+                    data-name="{{ $employee->first_name }} {{ $employee->last_name }}">
+                    <i class="bi bi-trash3 me-2"></i>
+                    Delete
+                </button>
+            </li>
+        </ul>
+    </div>
+</td>
+
                             </tr>
                         @empty
                             <tr>
@@ -290,6 +322,75 @@
                             <div class="invalid-feedback"></div>
                         </div>
 
+
+
+                        <div class="col-md-6">
+                            <label for="aadhar_number" class="form-label">
+                                Aadhar Number
+                            </label>
+                            <input type="text" name="aadhar_number"
+                                   id="aadhar_number" class="form-control">
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+
+                        <div class="col-md-6">
+                            <label for="driving_license_number" class="form-label">
+                                Driving License Number
+                            </label>
+                            <input type="text" name="driving_license_number"
+                                   id="driving_license_number" class="form-control">
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+
+
+                        <div class="col-md-6">
+                            <label for="account_number" class="form-label">
+                                Account Number
+                            </label>
+                            <input type="text" name="account_number"
+                                   id="account_number" class="form-control">
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+
+                        <div class="col-md-6">
+                            <label for="ifsc_code" class="form-label">
+                                IFSC Code
+                            </label>
+                            <input type="text" name="ifsc_code"
+                                   id="ifsc_code" class="form-control">
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+
+
+                        <div class="col-md-6">
+                            <label for="uan_number" class="form-label">
+                                UAN Number
+                            </label>
+                            <input type="text" name="uan_number"
+                                   id="uan_number" class="form-control">
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+
+
+                        <div class="col-md-6">
+                            <label for="esi_number" class="form-label">
+                                ESI Number
+                            </label>
+                            <input type="text" name="esi_number"
+                                   id="esi_number" class="form-control">
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+
+
+
+
+
                         <div class="col-md-6">
                             <label for="joining_date" class="form-label">
                                 Joining Date
@@ -299,14 +400,14 @@
                             <div class="invalid-feedback"></div>
                         </div>
 
-                        <div class="col-md-6">
+                        <!-- <div class="col-md-6">
                             <label for="leaving_date" class="form-label">
                                 Leaving Date
                             </label>
                             <input type="date" name="leaving_date"
                                    id="leaving_date" class="form-control">
                             <div class="invalid-feedback"></div>
-                        </div>
+                        </div> -->
 
                         <div class="col-md-6">
                             <label for="employee_status" class="form-label">
@@ -399,7 +500,7 @@
                         aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="row g-3">
+                <!-- <div class="row g-3">
                     @foreach([
                         'id' => 'ID',
                          'employee_code' => 'Employee Code', 
@@ -407,13 +508,92 @@
                         'created_at' => 'Created At',
                         'updated_at' => 'Updated At',
                     ] as $field => $label)
+
+                    <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-light">
+                    <tr>
+                    <th>{{ $label }}</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                    <td id="view_employee_{{ $field }}"></td>
+                    </tr>
+                    </tbody>
+                    </table>
+                                
+
+
+
+
+
+
+
+
                         <div class="col-md-6">
                             <label class="form-label" for="view_employee_{{ $field }}">{{ $label }}</label>
                             <input type="text" class="form-control"
                                    id="view_employee_{{ $field }}" disabled>
-                        </div>
+                        </div> 
                     @endforeach
-                </div>
+                </div> -->
+
+
+
+
+
+
+
+
+
+
+
+
+<table class="table table-bordered">
+    <tbody>
+        @foreach([
+            'id' => 'ID',
+            'employee_code' => 'Employee Code',
+            'first_name' => 'First Name',
+            'last_name' => 'Last Name',
+            'email' => 'Email',
+            'phone' => 'Phone',
+            'department' => 'Department',
+            'designation' => 'Designation',
+            'aadhar_number' => 'Aadhar Number',
+            'driving_license_number' => 'Driving License Number',
+            'account_number' => 'Account Number',
+            'ifsc_code' => 'IFSC Code',
+            'uan_number' => 'UAN Number',
+            'esi_number' => 'ESI Number',
+            'joining_date' => 'Joining Date',
+            'leaving_date' => 'Leaving Date',
+            'status' => 'Status',
+            'created_at' => 'Created At',
+            'updated_at' => 'Updated At',
+        ] as $field => $label)
+
+            <tr>
+                <th style="width: 35%; background-color: #f8f9fa;">
+                    {{ $label }}
+                </th>
+
+                <td id="view_employee_{{ $field }}">
+                    —
+                </td>
+            </tr>
+
+        @endforeach
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -553,12 +733,53 @@ document.addEventListener('click', function (event) {
     );
 
     const fields = [
-        'id', 'employee_code', 'first_name', 'created_at', 'updated_at'
+        'id', 
+        'employee_code', 
+        'first_name', 
+        'last_name', 
+        'email', 
+        'phone', 
+        'department', 
+        'designation',
+        'aadhar_number',
+        'driving_license_number',
+        'account_number',
+        'ifsc_code',
+        'uan_number',
+        'esi_number',
+        'joining_date',
+        'leaving_date',
+        'status',
+        'created_at', 
+        'updated_at'
     ];
 
     fields.forEach(function (field) {
-        const input = document.getElementById('view_employee_' + field);
-        if (input) input.value = employee[field] || '—';
+        // const input = document.getElementById('view_employee_' + field);
+        // if (input) input.value = employee[field] || '—';
+
+        // if (td) input.textContent = employee[field] || '—';
+
+
+        const td = document.getElementById('view_employee_' + field);
+
+if (td) {
+    td.textContent = employee[field] || '—';
+}
+
+
+
+
+    });
+
+    Object.entries(employee).forEach(([field, value]) => {
+
+        if (field === 'created_at' || field === 'updated_at') {
+            value = formatDate(value);
+        }
+
+        $('#view_employee_' + field).val(value ?? '');
+
     });
 
     viewEmployeeModal.show();
@@ -727,5 +948,43 @@ document.addEventListener('click', function (event) {
     });
 
 });
+
+
+
+
+
+
+
+
+
+
+function formatDate(dateString) {
+    if (!dateString) return '';
+
+    const date = new Date(dateString);
+
+    if (isNaN(date.getTime())) return '';
+
+    const day = date.getDate();
+
+    const suffix =
+        day % 10 === 1 && day !== 11 ? 'st' :
+        day % 10 === 2 && day !== 12 ? 'nd' :
+        day % 10 === 3 && day !== 13 ? 'rd' : 'th';
+
+    const month = date.toLocaleString('en-GB', {
+        month: 'long'
+    });
+
+    const year = date.getFullYear();
+
+    return `${day}${suffix} ${month} ${year}`;
+}
+
+
+
+
+
+
 </script>
 @endsection

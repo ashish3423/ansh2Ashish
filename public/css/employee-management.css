@@ -1,0 +1,931 @@
+
+/* Employee Management - Modern Design */
+
+.employee-management-page {
+    padding: 28px !important;
+    background: #f4f7fc;
+    min-height: calc(100vh - 70px);
+    color: #18233f;
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+/* Page Heading */
+.employee-management-page h3 {
+    color: #172554;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.employee-management-page p.text-muted {
+    color: #77839b !important;
+    font-size: 14px;
+}
+
+/* Cards */
+.employee-management-page .card {
+    background: #fff;
+    border: 1px solid #e6ebf4;
+    border-radius: 14px;
+    box-shadow: 0 5px 22px rgba(30, 50, 90, 0.05);
+    overflow: hidden;
+}
+
+.employee-management-page .card-body {
+    padding: 22px;
+}
+
+.employee-management-page .card-header {
+    padding: 18px 22px;
+    background: #fff;
+    border-bottom: 1px solid #e9edf5;
+}
+
+.employee-management-page .card-header h5 {
+    color: #1e2d50;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+/* Buttons */
+.employee-management-page .btn {
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 15px;
+    transition: all .2s ease;
+}
+
+.employee-management-page .btn-primary {
+    background: linear-gradient(135deg, #4f46e5, #6258ef);
+    border-color: #4f46e5;
+    box-shadow: 0 4px 10px rgba(79, 70, 229, .16);
+}
+
+.employee-management-page .btn-primary:hover {
+    background: #3730a3;
+    border-color: #3730a3;
+    transform: translateY(-1px);
+}
+
+.employee-management-page .btn-secondary {
+    background: #64748b;
+    border-color: #64748b;
+    color: #fff;
+}
+
+.employee-management-page .btn-info {
+    background: #e8f1ff;
+    border-color: #e8f1ff;
+    color: #1d4ed8;
+}
+
+.employee-management-page .btn-warning {
+    background: #fff0c2;
+    border-color: #fff0c2;
+    color: #92400e;
+}
+
+.employee-management-page .btn-danger {
+    background: #fee8e8;
+    border-color: #fee8e8;
+    color: #c62828;
+}
+
+.employee-management-page .btn-info:hover,
+.employee-management-page .btn-warning:hover,
+.employee-management-page .btn-danger:hover {
+    filter: brightness(.96);
+}
+
+/* Search Fields */
+.employee-management-page .form-label {
+    color: #34415c;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.employee-management-page .form-control,
+.employee-management-page .form-select {
+    min-height: 43px;
+    border: 1px solid #dce3ef;
+    border-radius: 8px;
+    color: #253451;
+    font-size: 13px;
+    box-shadow: none;
+    transition: border-color .2s, box-shadow .2s;
+}
+
+.employee-management-page .form-control::placeholder {
+    color: #97a2b6;
+}
+
+.employee-management-page .form-control:focus,
+.employee-management-page .form-select:focus {
+    border-color: #7771f2;
+    box-shadow: 0 0 0 3px rgba(99, 91, 230, .12);
+}
+
+/* Employee Table */
+.employee-management-page .table-responsive {
+    border: 1px solid #e5eaf3;
+    border-radius: 10px;
+}
+
+.employee-management-page .table {
+    min-width: 1100px;
+    margin-bottom: 0;
+    color: #34415c;
+    font-size: 13px;
+}
+
+.employee-management-page .table thead th {
+    padding: 15px 12px;
+    background: #f2f5fb;
+    color: #263654;
+    border-color: #e1e7f1;
+    font-weight: 700;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.employee-management-page .table tbody td {
+    padding: 14px 12px;
+    border-color: #e9edf5;
+    vertical-align: middle;
+}
+
+.employee-management-page .table tbody tr {
+    transition: background-color .2s ease;
+}
+
+.employee-management-page .table-hover tbody tr:hover > * {
+    background-color: #f7f9ff;
+}
+
+/* Status */
+.employee-management-page .badge {
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.employee-management-page .badge.bg-success {
+    background: #dcfce7 !important;
+    color: #15803d;
+}
+
+.employee-management-page .badge.bg-secondary {
+    background: #eef0f5 !important;
+    color: #64748b;
+}
+
+/* Action Buttons */
+.employee-management-page .table td .btn-sm {
+    padding: 7px 10px;
+    margin: 2px 1px;
+    white-space: nowrap;
+}
+
+/* Pagination */
+.employee-management-page .pagination {
+    gap: 5px;
+    margin-bottom: 0;
+}
+
+.employee-management-page .page-link {
+    border: 1px solid #e0e6f0;
+    border-radius: 7px !important;
+    color: #4f46e5;
+    font-size: 13px;
+}
+
+.employee-management-page .page-item.active .page-link {
+    background: #4f46e5;
+    border-color: #4f46e5;
+    color: #fff;
+}
+
+/* Modals */
+#employeeModal .modal-content,
+#deleteEmployeeModal .modal-content,
+#viewEmployeeModal .modal-content {
+    border: 0;
+    border-radius: 15px;
+    box-shadow: 0 20px 60px rgba(20, 35, 70, .18);
+    overflow: hidden;
+}
+
+#employeeModal .modal-header,
+#deleteEmployeeModal .modal-header,
+#viewEmployeeModal .modal-header {
+    padding: 20px 24px;
+    background: #f7f8ff;
+    border-bottom: 1px solid #e7eaf4;
+}
+
+#employeeModal .modal-title,
+#deleteEmployeeModal .modal-title,
+#viewEmployeeModal .modal-title {
+    color: #1e2d50;
+    font-weight: 700;
+}
+
+#employeeModal .modal-body,
+#viewEmployeeModal .modal-body {
+    padding: 24px;
+}
+
+#employeeModal .modal-footer,
+#deleteEmployeeModal .modal-footer,
+#viewEmployeeModal .modal-footer {
+    padding: 16px 24px;
+    background: #fafbfe;
+    border-top: 1px solid #e7eaf4;
+}
+
+/* Alerts */
+.employee-management-page .alert {
+    border: 0;
+    border-radius: 10px;
+    padding: 14px 18px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .employee-management-page {
+        padding: 16px !important;
+    }
+
+    .employee-management-page h3 {
+        font-size: 23px;
+    }
+
+    .employee-management-page .card-body {
+        padding: 15px;
+    }
+
+    .employee-management-page .card-header {
+        padding: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .employee-management-page {
+        padding: 12px !important;
+    }
+
+    .employee-management-page .btn {
+        font-size: 12px;
+    }
+}
+
+/* Employee action icons */
+.employee-management-page .employee-actions {
+    white-space: nowrap;
+    min-width: 105px;
+    overflow: visible;
+}
+
+.employee-management-page .edit-icon-btn,
+.employee-management-page .more-actions-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: #64748b;
+    text-decoration: none;
+    font-size: 19px;
+    box-shadow: none;
+}
+
+.employee-management-page .edit-icon-btn:hover {
+    background: #fff3d6;
+    color: #d97706;
+}
+
+.employee-management-page .more-actions-btn:hover,
+.employee-management-page .more-actions-btn[aria-expanded="true"] {
+    background: #edf2ff;
+    color: #4f46e5;
+}
+
+.employee-management-page .employee-action-menu {
+    min-width: 175px;
+    padding: 7px;
+    border: 1px solid #e7ebf3;
+    border-radius: 10px;
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.14);
+    z-index: 1080;
+}
+
+.employee-management-page .employee-action-menu .dropdown-item {
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+.employee-management-page .employee-action-menu .dropdown-item:hover {
+    background: #f1f5ff;
+}
+
+.employee-management-page .employee-action-menu .dropdown-item.text-danger:hover {
+    background: #fff0f0;
+    color: #dc2626 !important;
+}
+
+.employee-management-page .employee-action-menu i {
+    width: 18px;
+}
+
+/* Salary table action buttons */
+.salary-actions {
+    white-space: nowrap;
+    overflow: visible;
+}
+
+.salary-edit-icon,
+.salary-more-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 7px;
+    color: #64748b;
+    font-size: 19px;
+    text-decoration: none;
+}
+
+.salary-edit-icon:hover {
+    background: #fff0c2;
+    color: #b45309;
+}
+
+.salary-more-btn:hover,
+.salary-more-btn[aria-expanded="true"] {
+    background: #edf2ff;
+    color: #4f46e5;
+}
+
+.salary-action-menu {
+    min-width: 175px;
+    padding: 7px;
+    border: 1px solid #e7ebf3;
+    border-radius: 10px;
+    box-shadow: 0 8px 28px rgba(15, 23, 42, .14);
+    z-index: 1080;
+}
+
+.salary-action-menu .dropdown-item {
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+.salary-action-menu .dropdown-item:hover {
+    background: #f1f5ff;
+}
+
+.salary-action-menu .dropdown-item.text-danger:hover {
+    background: #fff0f0;
+    color: #dc2626 !important;
+}
+
+/* =================================
+   EMPLOYEE SALARIES - MATCH EMPLOYEES
+================================= */
+
+.salary-management-page {
+    padding: 28px !important;
+    min-height: calc(100vh - 70px);
+    background: #f4f7fc;
+    color: #18233f;
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.salary-management-page h1,
+.salary-management-page h2,
+.salary-management-page h3,
+.salary-management-page h4,
+.salary-management-page h5 {
+    color: #172554;
+    font-weight: 700;
+}
+
+.salary-management-page h3 {
+    font-size: 28px;
+    letter-spacing: -0.4px;
+}
+
+.salary-management-page .text-muted {
+    color: #77839b !important;
+}
+
+/* Cards: Filters and Salary Records */
+
+.salary-management-page .card {
+    background: #fff;
+    border: 1px solid #e6ebf4;
+    border-radius: 14px;
+    box-shadow: 0 5px 22px rgba(30, 50, 90, 0.05);
+    margin-bottom: 22px;
+}
+
+.salary-management-page .card-header {
+    padding: 18px 20px;
+    background: #fff;
+    border-bottom: 1px solid #e9edf5;
+    border-radius: 14px 14px 0 0;
+}
+
+.salary-management-page .card-header h5 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.salary-management-page .card-body {
+    padding: 22px;
+}
+
+/* Filter labels */
+
+.salary-management-page .form-label {
+    display: block;
+    margin-bottom: 8px;
+    color: #34415c;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* Filter inputs */
+
+.salary-management-page .form-control,
+.salary-management-page .form-select {
+    min-height: 40px;
+    border: 1px solid #dce3ef;
+    border-radius: 8px;
+    background-color: #fff;
+    color: #253451;
+    font-size: 13px;
+    box-shadow: none;
+    transition: border-color .2s, box-shadow .2s;
+}
+
+.salary-management-page .form-control:focus,
+.salary-management-page .form-select:focus {
+    border-color: #7771f2;
+    box-shadow: 0 0 0 3px rgba(99, 91, 230, .12);
+}
+
+/* Buttons */
+
+.salary-management-page .btn {
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 15px;
+    transition: all .2s ease;
+}
+
+.salary-management-page .btn-primary {
+    background: #5549f5;
+    border-color: #5549f5;
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(79, 70, 229, .15);
+}
+
+.salary-management-page .btn-primary:hover {
+    background: #4035d4;
+    border-color: #4035d4;
+    transform: translateY(-1px);
+}
+
+.salary-management-page .btn-secondary {
+    background: #64748b;
+    border-color: #64748b;
+    color: #fff;
+}
+
+/* Salary Records table */
+
+.salary-management-page .table-responsive {
+    border: 1px solid #e1e7f1;
+    border-radius: 9px;
+    overflow-x: auto;
+}
+
+.salary-management-page .table {
+    width: 100%;
+    margin-bottom: 0;
+    color: #34415c;
+    font-size: 13px;
+}
+
+.salary-management-page .table thead th {
+    padding: 14px 12px;
+    background: #f2f5fb;
+    color: #263654;
+    border-color: #e1e7f1;
+    font-weight: 700;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.salary-management-page .table tbody td {
+    padding: 14px 12px;
+    border-color: #e9edf5;
+    vertical-align: middle;
+}
+
+.salary-management-page .table tbody tr {
+    transition: background-color .2s ease;
+}
+
+.salary-management-page .table-hover tbody tr:hover > * {
+    background-color: #f7f9ff;
+}
+
+/* Salary action buttons */
+
+.salary-management-page .salary-actions {
+    white-space: nowrap;
+}
+
+.salary-management-page .salary-edit-icon,
+.salary-management-page .salary-more-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 7px;
+    background: transparent;
+    color: #64748b;
+    font-size: 19px;
+    text-decoration: none;
+}
+
+.salary-management-page .salary-edit-icon:hover {
+    background: #fff0c2;
+    color: #b45309;
+}
+
+.salary-management-page .salary-more-btn:hover,
+.salary-management-page .salary-more-btn[aria-expanded="true"] {
+    background: #edf2ff;
+    color: #4f46e5;
+}
+
+.salary-management-page .salary-action-menu {
+    min-width: 175px;
+    padding: 7px;
+    border: 1px solid #e7ebf3;
+    border-radius: 10px;
+    box-shadow: 0 8px 28px rgba(15, 23, 42, .14);
+    z-index: 1080;
+}
+
+.salary-management-page .salary-action-menu .dropdown-item {
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+.salary-management-page .salary-action-menu .dropdown-item:hover {
+    background: #f1f5ff;
+}
+
+/* Responsive */
+
+@media (max-width: 768px) {
+    .salary-management-page {
+        padding: 16px !important;
+    }
+
+    .salary-management-page .card-body {
+        padding: 15px;
+    }
+
+    .salary-management-page .card-header {
+        padding: 16px;
+    }
+}
+
+/* Salary dropdown clipping fix */
+.salary-management-page .salary-action-menu {
+    position: fixed !important;
+    z-index: 99999 !important;
+    min-width: 175px;
+    margin-top: 0 !important;
+}
+
+/* Keep action buttons visible */
+.salary-management-page .salary-actions {
+    position: relative;
+    white-space: nowrap;
+}
+
+.salary-management-page .salary-actions .dropdown {
+    position: static !important;
+}
+
+/* Keep table horizontal scroll */
+.salary-management-page .table-responsive {
+    overflow-x: auto !important;
+}
+
+/* Ensure menu is above the cards */
+.salary-management-page .card {
+    overflow: visible !important;
+}
+.salary-management-page .salary-action-menu {
+    position: fixed !important;
+}
+
+
+
+/* =========================================
+   COREUI DARK MODE - EMPLOYEE MANAGEMENT
+========================================= */
+
+html[data-coreui-theme="dark"] .employee-management-page {
+    background-color: #1f2531 !important;
+    color: #e2e8f0 !important;
+}
+
+/* Headings */
+html[data-coreui-theme="dark"] .employee-management-page h3,
+html[data-coreui-theme="dark"] .employee-management-page h5 {
+    color: #f1f5f9 !important;
+}
+
+html[data-coreui-theme="dark"] .employee-management-page .text-muted {
+    color: #a5b4c8 !important;
+}
+
+/* Cards and card headers */
+html[data-coreui-theme="dark"] .employee-management-page .card,
+html[data-coreui-theme="dark"] .employee-management-page .card-header {
+    background-color: #252d3b !important;
+    color: #e2e8f0 !important;
+    border-color: #394457 !important;
+}
+
+/* Filter labels */
+html[data-coreui-theme="dark"] .employee-management-page .form-label {
+    color: #dbe4f0 !important;
+}
+
+/* Search fields and select */
+html[data-coreui-theme="dark"] .employee-management-page .form-control,
+html[data-coreui-theme="dark"] .employee-management-page .form-select {
+    background-color: #171e2a !important;
+    color: #f1f5f9 !important;
+    border-color: #414d61 !important;
+}
+
+html[data-coreui-theme="dark"] .employee-management-page .form-control::placeholder {
+    color: #9ba9bd !important;
+    opacity: 1;
+}
+
+html[data-coreui-theme="dark"] .employee-management-page .form-select option {
+    background-color: #252d3b !important;
+    color: #f1f5f9 !important;
+}
+
+/* Table background and rows */
+html[data-coreui-theme="dark"] .employee-management-page .table,
+html[data-coreui-theme="dark"] .employee-management-page .table tbody tr > *,
+html[data-coreui-theme="dark"] .employee-management-page .table tbody td {
+    background-color: #252d3b !important;
+    color: #e2e8f0 !important;
+    border-color: #394457 !important;
+    box-shadow: none !important;
+}
+
+/* Table header */
+html[data-coreui-theme="dark"] .employee-management-page .table thead th {
+    background-color: #303b4d !important;
+    color: #f8fafc !important;
+    border-color: #465267 !important;
+}
+
+/* Hover rows */
+html[data-coreui-theme="dark"] .employee-management-page .table-hover tbody tr:hover > * {
+    background-color: #354258 !important;
+    color: #ffffff !important;
+}
+
+/* Edit and three-dot icons */
+html[data-coreui-theme="dark"] .employee-management-page .edit-icon-btn,
+html[data-coreui-theme="dark"] .employee-management-page .more-actions-btn {
+    color: #cbd5e1 !important;
+}
+
+html[data-coreui-theme="dark"] .employee-management-page .edit-icon-btn:hover,
+html[data-coreui-theme="dark"] .employee-management-page .more-actions-btn:hover {
+    background-color: #39465c !important;
+    color: #ffffff !important;
+}
+
+/* Three-dot popup */
+html[data-coreui-theme="dark"] .employee-management-page .employee-action-menu {
+    background-color: #252d3b !important;
+    border-color: #465267 !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .4) !important;
+}
+
+html[data-coreui-theme="dark"] .employee-management-page .employee-action-menu .dropdown-item {
+    color: #e2e8f0 !important;
+    background-color: transparent !important;
+}
+
+html[data-coreui-theme="dark"] .employee-management-page .employee-action-menu .dropdown-item:hover {
+    background-color: #354258 !important;
+    color: #ffffff !important;
+}
+
+html[data-coreui-theme="dark"] .employee-management-page .employee-action-menu .text-danger {
+    color: #ff8585 !important;
+}
+
+/* Pagination */
+html[data-coreui-theme="dark"] .employee-management-page .page-link {
+    background-color: #252d3b !important;
+    color: #dbeafe !important;
+    border-color: #394457 !important;
+}
+
+html[data-coreui-theme="dark"] .employee-management-page .page-item.active .page-link {
+    background-color: #5145e5 !important;
+    border-color: #5145e5 !important;
+    color: #ffffff !important;
+}
+
+/* Modals */
+html[data-coreui-theme="dark"] .modal-content {
+    background-color: #252d3b !important;
+    color: #e2e8f0 !important;
+    border-color: #394457 !important;
+}
+
+html[data-coreui-theme="dark"] .modal-header,
+html[data-coreui-theme="dark"] .modal-footer {
+    border-color: #394457 !important;
+}
+
+html[data-coreui-theme="dark"] .modal-title {
+    color: #f1f5f9 !important;
+}
+
+/* =========================================
+   COREUI DARK MODE - EMPLOYEE MANAGEMENT
+========================================= */
+
+html[data-coreui-theme="dark"] .salary-management-page {
+    background-color: #1f2531 !important;
+    color: #e2e8f0 !important;
+}
+
+/* Headings */
+html[data-coreui-theme="dark"] .salary-management-page h3,
+html[data-coreui-theme="dark"] .salary-management-page h5 {
+    color: #f1f5f9 !important;
+}
+
+html[data-coreui-theme="dark"] .salary-management-page .text-muted {
+    color: #a5b4c8 !important;
+}
+
+/* Cards and card headers */
+html[data-coreui-theme="dark"] .salary-management-page .card,
+html[data-coreui-theme="dark"] .salary-management-page .card-header {
+    background-color: #252d3b !important;
+    color: #e2e8f0 !important;
+    border-color: #394457 !important;
+}
+
+/* Filter labels */
+html[data-coreui-theme="dark"] .salary-management-page .form-label {
+    color: #dbe4f0 !important;
+}
+
+/* Search fields and select */
+html[data-coreui-theme="dark"] .salary-management-page .form-control,
+html[data-coreui-theme="dark"] .salary-management-page .form-select {
+    background-color: #171e2a !important;
+    color: #f1f5f9 !important;
+    border-color: #414d61 !important;
+}
+
+html[data-coreui-theme="dark"] .salary-management-page .form-control::placeholder {
+    color: #9ba9bd !important;
+    opacity: 1;
+}
+
+html[data-coreui-theme="dark"] .salary-management-page .form-select option {
+    background-color: #252d3b !important;
+    color: #f1f5f9 !important;
+}
+
+/* Table background and rows */
+html[data-coreui-theme="dark"] .salary-management-page .table,
+html[data-coreui-theme="dark"] .salary-management-page .table tbody tr > *,
+html[data-coreui-theme="dark"] .salary-management-page .table tbody td {
+    background-color: #252d3b !important;
+    color: #e2e8f0 !important;
+    border-color: #394457 !important;
+    box-shadow: none !important;
+}
+
+/* Table header */
+html[data-coreui-theme="dark"] .salary-management-page .table thead th {
+    background-color: #303b4d !important;
+    color: #f8fafc !important;
+    border-color: #465267 !important;
+}
+
+/* Hover rows */
+html[data-coreui-theme="dark"] .salary-management-page .table-hover tbody tr:hover > * {
+    background-color: #354258 !important;
+    color: #ffffff !important;
+}
+
+/* Edit and three-dot icons */
+html[data-coreui-theme="dark"] .salary-management-page .edit-icon-btn,
+html[data-coreui-theme="dark"] .salary-management-page .more-actions-btn {
+    color: #cbd5e1 !important;
+}
+
+html[data-coreui-theme="dark"] .salary-management-page .edit-icon-btn:hover,
+html[data-coreui-theme="dark"] .salary-management-page .more-actions-btn:hover {
+    background-color: #39465c !important;
+    color: #ffffff !important;
+}
+
+/* Three-dot popup */
+html[data-coreui-theme="dark"] .salary-management-page .employee-action-menu {
+    background-color: #252d3b !important;
+    border-color: #465267 !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .4) !important;
+}
+
+html[data-coreui-theme="dark"] .salary-management-page .employee-action-menu .dropdown-item {
+    color: #e2e8f0 !important;
+    background-color: transparent !important;
+}
+
+html[data-coreui-theme="dark"] .salary-management-page .employee-action-menu .dropdown-item:hover {
+    background-color: #354258 !important;
+    color: #ffffff !important;
+}
+
+html[data-coreui-theme="dark"] .salary-management-page .employee-action-menu .text-danger {
+    color: #ff8585 !important;
+}
+
+/* Pagination */
+html[data-coreui-theme="dark"] .salary-management-page .page-link {
+    background-color: #252d3b !important;
+    color: #dbeafe !important;
+    border-color: #394457 !important;
+}
+
+html[data-coreui-theme="dark"] .salary-management-page .page-item.active .page-link {
+    background-color: #5145e5 !important;
+    border-color: #5145e5 !important;
+    color: #ffffff !important;
+}
+
+/* Modals */
+html[data-coreui-theme="dark"] .modal-content {
+    background-color: #252d3b !important;
+    color: #e2e8f0 !important;
+    border-color: #394457 !important;
+}
+
+html[data-coreui-theme="dark"] .modal-header,
+html[data-coreui-theme="dark"] .modal-footer {
+    border-color: #394457 !important;
+}
+
+html[data-coreui-theme="dark"] .modal-title {
+    color: #f1f5f9 !important;
+}
+
+html[data-coreui-theme="dark"] #employeeModal .modal-header, html[data-coreui-theme="dark"] #deleteEmployeeModal .modal-header, html[data-coreui-theme="dark"] #viewEmployeeModal .modal-header{    background: transparent;}
+html[data-coreui-theme="dark"] #employeeModal .modal-footer, html[data-coreui-theme="dark"] #deleteEmployeeModal .modal-footer, html[data-coreui-theme="dark"] #viewEmployeeModal .modal-footer{    background: transparent;}

@@ -325,6 +325,37 @@
 </div>
 
 
+
+<style>
+/* Force vertical scrolling inside the Add/Edit Employee modal */
+#employeeModal .modal-dialog {
+    max-height: calc(100vh - 2rem) !important;
+    margin-top: 1rem !important;
+    margin-bottom: 1rem !important;
+}
+
+#employeeModal .modal-content {
+    max-height: calc(100vh - 2rem) !important;
+    overflow: hidden !important;
+}
+
+#employeeModal #employeeForm {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+}
+
+#employeeModal .modal-body {
+    min-height: 0 !important;
+    max-height: calc(100vh - 200px) !important;
+    overflow-y: scroll !important;
+    overflow-x: hidden !important;
+    flex: 1 1 auto !important;
+}
+</style>
+
+
 {{-- Add / Edit Employee Modal --}}
 <div class="modal fade" id="employeeModal" tabindex="-1"
      aria-labelledby="employeeModalLabel" aria-hidden="true">

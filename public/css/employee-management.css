@@ -624,13 +624,7 @@
     }
 }
 
-/* Salary dropdown clipping fix */
-.salary-management-page .salary-action-menu {
-    position: fixed !important;
-    z-index: 99999 !important;
-    min-width: 175px;
-    margin-top: 0 !important;
-}
+
 
 /* Keep action buttons visible */
 .salary-management-page .salary-actions {
@@ -647,13 +641,6 @@
     overflow-x: auto !important;
 }
 
-/* Ensure menu is above the cards */
-.salary-management-page .card {
-    overflow: visible !important;
-}
-.salary-management-page .salary-action-menu {
-    position: fixed !important;
-}
 
 
 
@@ -929,3 +916,189 @@ html[data-coreui-theme="dark"] .modal-title {
 
 html[data-coreui-theme="dark"] #employeeModal .modal-header, html[data-coreui-theme="dark"] #deleteEmployeeModal .modal-header, html[data-coreui-theme="dark"] #viewEmployeeModal .modal-header{    background: transparent;}
 html[data-coreui-theme="dark"] #employeeModal .modal-footer, html[data-coreui-theme="dark"] #deleteEmployeeModal .modal-footer, html[data-coreui-theme="dark"] #viewEmployeeModal .modal-footer{    background: transparent;}
+
+/* =========================================
+   EMPLOYEE & SALARY MODALS - SAME DESIGN
+========================================= */
+
+#employeeModal .modal-content,
+#salaryModal .modal-content {
+    border: 0;
+    border-radius: 15px;
+    box-shadow: 0 20px 60px rgba(20, 35, 70, 0.18);
+    overflow: hidden;
+    background: #ffffff;
+}
+
+/* Modal Header */
+#employeeModal .modal-header,
+#salaryModal .modal-header {
+    padding: 20px 24px;
+    background: #f7f8ff;
+    border-bottom: 1px solid #e7eaf4;
+}
+
+/* Modal Title */
+#employeeModal .modal-title,
+#salaryModal .modal-title {
+    color: #1e2d50;
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+}
+
+/* Modal Body */
+#employeeModal .modal-body,
+#salaryModal .modal-body {
+    padding: 24px;
+    background: #ffffff;
+}
+
+/* Form Labels */
+#employeeModal .form-label,
+#salaryModal .form-label {
+    color: #34415c;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+/* Form Inputs */
+#employeeModal .form-control,
+#employeeModal .form-select,
+#salaryModal .form-control,
+#salaryModal .form-select {
+    min-height: 43px;
+    border: 1px solid #dce3ef;
+    border-radius: 8px;
+    background-color: #ffffff;
+    color: #253451;
+    font-size: 13px;
+    box-shadow: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#employeeModal .form-control:focus,
+#employeeModal .form-select:focus,
+#salaryModal .form-control:focus,
+#salaryModal .form-select:focus {
+    border-color: #7771f2;
+    box-shadow: 0 0 0 3px rgba(99, 91, 230, 0.12);
+}
+
+/* Modal Footer */
+#employeeModal .modal-footer,
+#salaryModal .modal-footer {
+    padding: 16px 24px;
+    background: #fafbfe;
+    border-top: 1px solid #e7eaf4;
+}
+
+/* Modal Buttons */
+#employeeModal .modal-footer .btn,
+#salaryModal .modal-footer .btn {
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 15px;
+}
+
+/* Responsive Spacing */
+@media (max-width: 576px) {
+    #employeeModal .modal-header,
+    #salaryModal .modal-header {
+        padding: 16px;
+    }
+
+    #employeeModal .modal-body,
+    #salaryModal .modal-body {
+        padding: 16px;
+    }
+
+    #employeeModal .modal-footer,
+    #salaryModal .modal-footer {
+        padding: 12px 16px;
+    }
+}
+
+/* Scrollable Employee and Salary Modals */
+#employeeModal .modal-dialog,
+#salaryModal .modal-dialog {
+    max-height: calc(100vh - 2rem);
+}
+
+#employeeModal .modal-content,
+#salaryModal .modal-content {
+    max-height: calc(100vh - 2rem);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#employeeModal .modal-body,
+#salaryModal .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+}
+
+/* Keep header and footer visible while scrolling */
+#employeeModal .modal-header,
+#salaryModal .modal-header,
+#employeeModal .modal-footer,
+#salaryModal .modal-footer {
+    flex-shrink: 0;
+}
+
+/* Make the scrollbar visible */
+#employeeModal .modal-body::-webkit-scrollbar,
+#salaryModal .modal-body::-webkit-scrollbar {
+    width: 7px;
+}
+
+#employeeModal .modal-body::-webkit-scrollbar-thumb,
+#salaryModal .modal-body::-webkit-scrollbar-thumb {
+    background: #c5cad5;
+    border-radius: 10px;
+}
+
+#employeeModal .modal-body::-webkit-scrollbar-track,
+#salaryModal .modal-body::-webkit-scrollbar-track {
+    background: #f1f3f8;
+}
+
+
+
+
+
+
+
+
+
+
+
+/* new css */
+
+
+/* Add/Edit Employee Modal vertical scrollbar */
+#employeeModal .modal-dialog {
+    max-height: 100vh;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+#employeeModal .modal-content {
+    max-height: calc(100vh - 2rem);
+    display: flex;
+    flex-direction: column;
+}
+
+#employeeModal .modal-body {
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    flex: 1 1 auto;
+}
+

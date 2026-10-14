@@ -11,6 +11,15 @@ class EmployeeController extends Controller
 {
     public function index(Request $request)
     {
+
+        // Fetch unique department names
+        $departments = DB::table('employees')
+        ->whereNotNull('department')
+        ->where('department', '!=', '')
+        ->distinct()
+        ->orderBy('department')
+        ->pluck('department');
+
         $query = DB::table('employees');
 
         if ($request->filled('search')) {
@@ -33,12 +42,17 @@ class EmployeeController extends Controller
             );
         }
 
+        // if ($request->filled('department')) {
+        //     $query->where(
+        //         'department',
+        //         'like',
+        //         '%' . $request->department . '%'
+        //     );
+        // }
+
+         // Department filter
         if ($request->filled('department')) {
-            $query->where(
-                'department',
-                'like',
-                '%' . $request->department . '%'
-            );
+            $query->where('department', $request->department);
         }
 
         if ($request->filled('status')) {
@@ -54,7 +68,10 @@ class EmployeeController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        return view('employees.index', compact('employees'));
+        //return view('employees.index', compact('employees'));
+
+        return view('employees.index', compact('employees', 'departments'));
+
     }
 
     public function store(Request $request)

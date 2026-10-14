@@ -51,7 +51,7 @@
                         >
                     </div>
 
-                    <div class="col-md-3">
+                    <!-- <div class="col-md-3">
                         <label for="department" class="form-label">Department</label>
                         <input
                             type="text"
@@ -61,7 +61,32 @@
                             placeholder="Department"
                             value="{{ request('department') }}"
                         >
-                    </div>
+                    </div> -->
+
+                    
+<div class="col-md-3">
+    <label for="filter_department" class="form-label">
+        Department
+    </label>
+
+    <select
+        name="department"
+        id="filter_department"
+        class="form-select"
+    >
+        <option value="">All Departments</option>
+
+        @foreach($departments as $department)
+            <option
+                value="{{ $department }}"
+                {{ request('department') === $department ? 'selected' : '' }}
+            >
+                {{ $department }}
+            </option>
+        @endforeach
+    </select>
+</div>
+
 
                     <div class="col-md-2">
                         <label for="status" class="form-label">Status</label>
@@ -549,7 +574,7 @@
 
 
 
-<table class="table table-bordered">
+<table class="table table-bordered table-hover align-middle">
     <tbody>
         @foreach([
             'id' => 'ID',

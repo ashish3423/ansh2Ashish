@@ -88,6 +88,74 @@
 </div>
 
 
+
+
+
+{{-- Police Verification Filter --}}
+<div class="col-md-3">
+    <label for="filter_police_verification" class="form-label">
+        Police Verification
+    </label>
+
+    <select name="police_verification_status"
+            id="filter_police_verification"
+            class="form-select">
+        <option value="">All</option>
+        <option value="1"
+            {{ request('police_verification_status') === '1' ? 'selected' : '' }}>
+            Verified
+        </option>
+        <option value="0"
+            {{ request('police_verification_status') === '0' ? 'selected' : '' }}>
+            Not Verified
+        </option>
+    </select>
+</div>
+
+{{-- ID Card Status Filter --}}
+<div class="col-md-3">
+    <label for="filter_id_card_status" class="form-label">
+        ID Card Status
+    </label>
+
+    <select name="id_card_status"
+            id="filter_id_card_status"
+            class="form-select">
+        <option value="">All</option>
+        <option value="1"
+            {{ request('id_card_status') === '1' ? 'selected' : '' }}>
+            Issued
+        </option>
+        <option value="0"
+            {{ request('id_card_status') === '0' ? 'selected' : '' }}>
+            Not Issued
+        </option>
+    </select>
+</div>
+
+{{-- Dress Status Filter --}}
+<div class="col-md-3">
+    <label for="filter_dress_status" class="form-label">
+        Dress Status
+    </label>
+
+    <select name="dress_status"
+            id="filter_dress_status"
+            class="form-select">
+        <option value="">All</option>
+        <option value="1"
+            {{ request('dress_status') === '1' ? 'selected' : '' }}>
+            Issued
+        </option>
+        <option value="0"
+            {{ request('dress_status') === '0' ? 'selected' : '' }}>
+            Not Issued
+        </option>
+    </select>
+</div>
+
+
+
                     <div class="col-md-2">
                         <label for="status" class="form-label">Status</label>
                         <select name="status" id="status" class="form-select">
@@ -434,6 +502,99 @@
                             <div class="invalid-feedback"></div>
                         </div> -->
 
+
+
+
+                        <!-- New Code Added -->
+
+                        
+{{-- ID Card Status --}}
+<div class="col-md-6">
+    <label class="form-label d-block">ID Card Status</label>
+
+    <div class="form-check form-switch">
+        <input
+            class="form-check-input"
+            type="checkbox"
+            role="switch"
+            name="id_card_status"
+            id="id_card_status"
+            value="1"
+        >
+        <label class="form-check-label" for="id_card_status">
+            Issued
+        </label>
+    </div>
+    <div class="invalid-feedback"></div>
+</div>
+
+{{-- Dress Status --}}
+<div class="col-md-6">
+    <label class="form-label d-block">Dress Status</label>
+
+    <div class="form-check form-switch">
+        <input
+            class="form-check-input"
+            type="checkbox"
+            role="switch"
+            name="dress_status"
+            id="dress_status"
+            value="1"
+        >
+        <label class="form-check-label" for="dress_status">
+            Issued
+        </label>
+    </div>
+    <div class="invalid-feedback"></div>
+</div>
+
+{{-- Police Verification Status --}}
+<div class="col-md-6">
+    <label class="form-label d-block">Police Verification Status</label>
+
+    <div class="form-check form-switch">
+        <input
+            class="form-check-input"
+            type="checkbox"
+            role="switch"
+            name="police_verification_status"
+            id="police_verification_status"
+            value="1"
+        >
+        <label class="form-check-label"
+               for="police_verification_status">
+            Verified
+        </label>
+    </div>
+    <div class="invalid-feedback"></div>
+</div>
+
+{{-- Police Certificate Number --}}
+<div class="col-md-6 d-none" id="police_certificate_wrapper">
+    <label for="police_certificate_number" class="form-label">
+        Police Certificate Number
+    </label>
+
+    <input
+        type="text"
+        name="police_certificate_number"
+        id="police_certificate_number"
+        class="form-control"
+        placeholder="Enter police certificate number"
+    >
+    <div class="invalid-feedback"></div>
+</div>
+
+
+
+                        <!-- New Code Added -->
+
+
+
+
+
+
+
                         <div class="col-md-6">
                             <label for="employee_status" class="form-label">
                                 Status <span class="text-danger">*</span>
@@ -593,6 +754,12 @@
             'esi_number' => 'ESI Number',
             'joining_date' => 'Joining Date',
             'leaving_date' => 'Leaving Date',
+
+            'id_card_status' => 'ID Card Status',
+            'dress_status' => 'Dress Status',
+            'police_verification_status' => 'Police Verification Status',
+            'police_certificate_number' => 'Police Certificate Number',
+
             'status' => 'Status',
             'created_at' => 'Created At',
             'updated_at' => 'Updated At',
@@ -651,6 +818,59 @@ document.addEventListener('DOMContentLoaded', function () {
         console.error('Bootstrap JavaScript is not loaded. Check layouts.newapp.');
         return;
     }
+
+    // New Code Added
+
+
+const policeSwitch = document.getElementById(
+    'police_verification_status'
+);
+
+const policeCertificateWrapper = document.getElementById(
+    'police_certificate_wrapper'
+);
+
+const policeCertificateInput = document.getElementById(
+    'police_certificate_number'
+);
+
+function togglePoliceCertificate() {
+    const isVerified = policeSwitch.checked;
+
+    policeCertificateWrapper.classList.toggle(
+        'd-none',
+        !isVerified
+    );
+
+    // Require the certificate number only when verified.
+    policeCertificateInput.required = isVerified;
+
+    // Clear the value when verification is switched off.
+    if (!isVerified) {
+        policeCertificateInput.value = '';
+        policeCertificateInput.classList.remove('is-invalid');
+
+        const feedback = policeCertificateInput
+            .parentElement.querySelector('.invalid-feedback');
+
+        if (feedback) {
+            feedback.textContent = '';
+        }
+    }
+}
+
+// Show/hide when the user changes the switch.
+policeSwitch.addEventListener(
+    'change',
+    togglePoliceCertificate
+);
+
+// Initial state.
+togglePoliceCertificate();
+
+
+
+    // New Code Added
 
     const employeeModalElement = document.getElementById('employeeModal');
     const deleteModalElement = document.getElementById('deleteEmployeeModal');
@@ -733,6 +953,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Add employee.
     document.getElementById('addEmployeeBtn').addEventListener('click', function () {
         form.reset();
+        togglePoliceCertificate();
         clearFormErrors();
 
         form.action = storeUrl;
@@ -774,6 +995,10 @@ document.addEventListener('click', function (event) {
         'esi_number',
         'joining_date',
         'leaving_date',
+        'id_card_status',
+        'dress_status',
+        'police_verification_status',
+        'police_certificate_number',
         'status',
         'created_at', 
         'updated_at'
@@ -832,13 +1057,30 @@ if (td) {
             form.reset();
             clearFormErrors();
 
+            // Object.keys(employee).forEach(function (key) {
+            //     const field = form.querySelector('[name="' + key + '"]');
+
+            //     if (field && employee[key] !== null) {
+            //         field.value = employee[key];
+            //     }
+            // });
+
+
             Object.keys(employee).forEach(function (key) {
                 const field = form.querySelector('[name="' + key + '"]');
 
-                if (field && employee[key] !== null) {
-                    field.value = employee[key];
+                if (!field) return;
+
+                if (field.type === 'checkbox') {
+                    field.checked = Number(employee[key]) === 1;
+                } else {
+                    field.value = employee[key] ?? '';
                 }
             });
+
+            // Update the certificate field based on the saved switch.
+            togglePoliceCertificate();
+
 
             const updateUrl = updateUrlTemplate + '/' + employee.id;
 

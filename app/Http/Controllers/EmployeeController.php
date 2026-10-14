@@ -63,6 +63,55 @@ class EmployeeController extends Controller
             $query->where('joining_date', $request->joining_date);
         }
 
+
+
+
+
+
+
+        // Police verification filter
+    if ($request->input('police_verification_status') !== null
+        && $request->input('police_verification_status') !== '') {
+        $query->where(
+            'police_verification_status',
+            $request->input('police_verification_status')
+        );
+    }
+
+    // ID card status filter
+    if ($request->input('id_card_status') !== null
+        && $request->input('id_card_status') !== '') {
+        $query->where(
+            'id_card_status',
+            $request->input('id_card_status')
+        );
+    }
+
+    // Dress status filter
+    if ($request->input('dress_status') !== null
+        && $request->input('dress_status') !== '') {
+        $query->where(
+            'dress_status',
+            $request->input('dress_status')
+        );
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         $employees = $query
             ->orderByDesc('id')
             ->paginate(10)
@@ -76,6 +125,10 @@ class EmployeeController extends Controller
 
     public function store(Request $request)
     {
+
+      
+
+
         $validated = $request->validate([
             'employee_code' => [
                 'required', 'string', 'max:50',
@@ -98,10 +151,29 @@ class EmployeeController extends Controller
             'uan_number' => 'nullable|string|max:100',
             'esi_number' => 'nullable|string|max:100',
 
+
+            'id_card_status' => 'nullable|boolean',
+            'dress_status' => 'nullable|boolean',
+            'police_verification_status' => 'nullable|boolean',
+            'police_certificate_number' => [
+                'nullable',
+                'string',
+                'max:100',
+                'required_if:police_verification_status,1',
+            ],
+
+
             'joining_date' => 'nullable|date',
             'leaving_date' => 'nullable|date|after_or_equal:joining_date',
             'status' => 'required|in:active,inactive',
         ]);
+
+          $request->merge([
+    'id_card_status' => $request->boolean('id_card_status'),
+    'dress_status' => $request->boolean('dress_status'),
+    'police_verification_status' =>
+        $request->boolean('police_verification_status'),
+]);
 
         DB::table('employees')->insert([
             ...$validated,
@@ -119,6 +191,9 @@ class EmployeeController extends Controller
         $employee = DB::table('employees')->where('id', $id)->first();
 
         abort_if(!$employee, 404, 'Employee not found.');
+
+
+       
 
         $validated = $request->validate([
             'employee_code' => [
@@ -142,10 +217,30 @@ class EmployeeController extends Controller
             'uan_number' => 'nullable|string|max:100',
             'esi_number' => 'nullable|string|max:100',
 
+
+            'id_card_status' => 'nullable|boolean',
+            'dress_status' => 'nullable|boolean',
+            'police_verification_status' => 'nullable|boolean',
+            'police_certificate_number' => [
+                'nullable',
+                'string',
+                'max:100',
+                'required_if:police_verification_status,1',
+            ],
+
+
             'joining_date' => 'nullable|date',
             'leaving_date' => 'nullable|date|after_or_equal:joining_date',
             'status' => 'required|in:active,inactive',
         ]);
+
+
+         $request->merge([
+    'id_card_status' => $request->boolean('id_card_status'),
+    'dress_status' => $request->boolean('dress_status'),
+    'police_verification_status' =>
+        $request->boolean('police_verification_status'),
+]);
 
         DB::table('employees')
             ->where('id', $id)

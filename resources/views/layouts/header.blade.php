@@ -1,4 +1,4 @@
-<header class="header header-sticky p-0 mb-4">
+<header class="header header-sticky p-0 mb-3">
         <div class="container-fluid border-bottom px-4">
           <button class="header-toggler" type="button" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()" style="margin-inline-start: -14px">
             <svg class="icon icon-lg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
@@ -177,14 +177,5 @@
             </li>
           </ul>
         </div>
-        <div class="container-fluid px-4">
-          <nav aria-label="breadcrumb">
-            <ol class="breadcrumb my-0">
-              <li class="breadcrumb-item"><a href="#">Home</a></li>
-              <!-- <li class="breadcrumb-item active"><span>Dashboard</span></li> -->
-              <li class="breadcrumb-item active"><span>{{ trim($__env->yieldContent('breadcrumb', 'Dashboard')) }}</span></li>
-              
-            </ol>
-          </nav>
-        </div>
+       
       </header>

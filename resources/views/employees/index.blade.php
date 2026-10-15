@@ -46,7 +46,7 @@
                             name="search"
                             id="search"
                             class="form-control"
-                            placeholder="Name, code, email or phone"
+                            placeholder="Name, code, email, Work location, or phone"
                             value="{{ request('search') }}"
                         >
                     </div>
@@ -353,6 +353,25 @@
     overflow-x: hidden !important;
     flex: 1 1 auto !important;
 }
+
+/* Visual grouping for Add/Edit Employee form sections */
+#employeeModal .employee-form-section {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    margin-top: 8px;
+    margin-bottom: 2px;
+    border-left: 4px solid #0d6efd;
+    border-radius: 4px;
+    background: #f1f6ff;
+    color: #173b70;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+#employeeModal .employee-form-section i {
+    font-size: 1.1rem;
+}
 </style>
 
 
@@ -384,6 +403,13 @@
                     <div id="formAlert" class="alert alert-danger d-none"></div>
 
                     <div class="row g-3">
+
+                        {{-- Section 1: Personal Details --}}
+                        <div class="col-12">
+                            <div class="employee-form-section">
+                                <i class="bi bi-person-vcard me-2"></i>Personal Details
+                            </div>
+                        </div>
 
                         <div class="col-md-6">
                             <label for="employee_code" class="form-label">
@@ -428,6 +454,18 @@
                             <div class="invalid-feedback"></div>
                         </div>
 
+
+                        <div class="col-md-6">
+                            <label for="work_location" class="form-label">
+                                Work Location
+                            </label>
+                            <input type="text" name="work_location"
+                                   id="work_location" class="form-control">
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        
+
                         <div class="col-md-6">
                             <label for="department" class="form-label">
                                 Department
@@ -469,6 +507,13 @@
 
 
 
+                        {{-- Section 2: Bank Details --}}
+                        <div class="col-12">
+                            <div class="employee-form-section">
+                                <i class="bi bi-bank me-2"></i>Bank Details
+                            </div>
+                        </div>
+
                         <div class="col-md-6">
                             <label for="account_number" class="form-label">
                                 Account Number
@@ -489,6 +534,13 @@
                         </div>
 
 
+
+                        {{-- Section 3: Other Details --}}
+                        <div class="col-12">
+                            <div class="employee-form-section">
+                                <i class="bi bi-card-list me-2"></i>Other Details
+                            </div>
+                        </div>
 
                         <div class="col-md-6">
                             <label for="uan_number" class="form-label">
@@ -537,10 +589,10 @@
 
 
                         <!-- New Code Added -->
-
-                        
+<div class="col-md-6"></div>
+<p></p>                        
 {{-- ID Card Status --}}
-<div class="col-md-6">
+<div class="col-md-4">
     <label class="form-label d-block">ID Card Status</label>
 
     <div class="form-check form-switch">
@@ -559,8 +611,9 @@
     <div class="invalid-feedback"></div>
 </div>
 
+
 {{-- Dress Status --}}
-<div class="col-md-6">
+<div class="col-md-4">
     <label class="form-label d-block">Dress Status</label>
 
     <div class="form-check form-switch">
@@ -580,7 +633,7 @@
 </div>
 
 {{-- Police Verification Status --}}
-<div class="col-md-6">
+<div class="col-md-4">
     <label class="form-label d-block">Police Verification Status</label>
 
     <div class="form-check form-switch">
@@ -775,6 +828,7 @@
             'last_name' => 'Last Name',
             'email' => 'Email',
             'phone' => 'Phone',
+            'work_location' => 'Work Location',
             'department' => 'Department',
             'designation' => 'Designation',
             'aadhar_number' => 'Aadhar Number',
@@ -1016,6 +1070,7 @@ document.addEventListener('click', function (event) {
         'last_name', 
         'email', 
         'phone', 
+        'work_location',
         'department', 
         'designation',
         'aadhar_number',
@@ -1035,33 +1090,65 @@ document.addEventListener('click', function (event) {
         'updated_at'
     ];
 
-    fields.forEach(function (field) {
-        // const input = document.getElementById('view_employee_' + field);
-        // if (input) input.value = employee[field] || '—';
-
-        // if (td) input.textContent = employee[field] || '—';
-
-
-        const td = document.getElementById('view_employee_' + field);
-
-if (td) {
-    td.textContent = employee[field] || '—';
-}
 
 
 
 
-    });
 
-    Object.entries(employee).forEach(([field, value]) => {
+    Object.entries(employee).forEach(([key, value]) => {
+                    const td = document.getElementById(`view_employee_${key}`);
+                    // if (field) field.value = value;
 
-        if (field === 'created_at' || field === 'updated_at') {
-            value = formatDate(value);
-        }
+                    if (key === 'created_at' || key === 'updated_at') {
+                        value = formatDate(value);
+                    }
+                    if (key === 'id_card_status' || key === 'dress_status' || key === 'police_verification_status') {
+                        
 
-        $('#view_employee_' + field).val(value ?? '');
+                        if (value === '1') {
+                            value = 'Issued';
+                        } else if (value === '0') {
+                            value = 'Not Issued';
+                        } else {
+                            value = '—';
+                        }
+                    }
 
-    });
+
+                    if (td) {
+                        td.textContent = td.value = value || '—';
+                    }
+                });
+
+    // fields.forEach(function (field) {
+    //     // const input = document.getElementById('view_employee_' + field);
+    //     // if (input) input.value = employee[field] || '—';
+
+    //     // if (td) input.textContent = employee[field] || '—';
+
+
+    //     const td = document.getElementById('view_employee_' + field);
+
+    //     if (td) {
+    //         td.textContent = employee[field] || '—';
+    //     }
+
+
+
+
+    // });
+
+    // Object.entries(employee).forEach(([field, value]) => {
+
+    //     if (field === 'created_at' || field === 'updated_at') {
+    //         alert("Hello");
+    //         alert(value);
+    //         value = formatDate(value);
+    //     }
+
+    //     $('#view_employee_' + field).val(value ?? '');
+
+    // });
 
     viewEmployeeModal.show();
 });
@@ -1257,6 +1344,7 @@ if (td) {
 
 
 function formatDate(dateString) {
+    
     if (!dateString) return '';
 
     const date = new Date(dateString);
@@ -1275,6 +1363,8 @@ function formatDate(dateString) {
     });
 
     const year = date.getFullYear();
+
+    // alert(`${day}${suffix} ${month} ${year}`);
 
     return `${day}${suffix} ${month} ${year}`;
 }

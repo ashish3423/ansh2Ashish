@@ -30,6 +30,7 @@ class EmployeeController extends Controller
                   ->orWhere('first_name', 'like', "%{$search}%")
                   ->orWhere('last_name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('work_location', 'like', "%{$search}%")
                   ->orWhere('phone', 'like', "%{$search}%");
             });
         }
@@ -70,31 +71,31 @@ class EmployeeController extends Controller
 
 
         // Police verification filter
-    if ($request->input('police_verification_status') !== null
-        && $request->input('police_verification_status') !== '') {
-        $query->where(
-            'police_verification_status',
-            $request->input('police_verification_status')
-        );
-    }
+        if ($request->input('police_verification_status') !== null
+            && $request->input('police_verification_status') !== '') {
+            $query->where(
+                'police_verification_status',
+                $request->input('police_verification_status')
+            );
+        }
 
-    // ID card status filter
-    if ($request->input('id_card_status') !== null
-        && $request->input('id_card_status') !== '') {
-        $query->where(
-            'id_card_status',
-            $request->input('id_card_status')
-        );
-    }
+        // ID card status filter
+        if ($request->input('id_card_status') !== null
+            && $request->input('id_card_status') !== '') {
+            $query->where(
+                'id_card_status',
+                $request->input('id_card_status')
+            );
+        }
 
-    // Dress status filter
-    if ($request->input('dress_status') !== null
-        && $request->input('dress_status') !== '') {
-        $query->where(
-            'dress_status',
-            $request->input('dress_status')
-        );
-    }
+        // Dress status filter
+        if ($request->input('dress_status') !== null
+            && $request->input('dress_status') !== '') {
+            $query->where(
+                'dress_status',
+                $request->input('dress_status')
+            );
+        }
 
 
 
@@ -125,10 +126,6 @@ class EmployeeController extends Controller
 
     public function store(Request $request)
     {
-
-      
-
-
         $validated = $request->validate([
             'employee_code' => [
                 'required', 'string', 'max:50',
@@ -141,6 +138,7 @@ class EmployeeController extends Controller
                 Rule::unique('employees', 'email'),
             ],
             'phone' => 'nullable|string|max:20',
+            'work_location' => 'nullable|string|max:100',
             'department' => 'nullable|string|max:100',
             'designation' => 'nullable|string|max:100',
 
@@ -207,6 +205,7 @@ class EmployeeController extends Controller
                 Rule::unique('employees', 'email')->ignore($id),
             ],
             'phone' => 'nullable|string|max:20',
+            'work_location' => 'nullable|string|max:100',
             'department' => 'nullable|string|max:100',
             'designation' => 'nullable|string|max:100',
 

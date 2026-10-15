@@ -466,51 +466,38 @@
 
             <div class="modal-body">
 
-                <div class="row g-3">
+                
+<table class="table table-bordered table-hover align-middle">
+    <tbody>
+        @foreach([
+            'id' => 'Salary ID',
+            'employee_id' => 'Employee ID',
+            'employee' => 'Employee',
+            'basic_salary' => 'Basic Salary',
+            'hra' => 'HRA',
+            'allowances' => 'Allowances',
+            'deductions' => 'Deductions',
+            'gross_salary' => 'Gross Salary',
+            'net_salary' => 'Net Salary',
+            'effective_from' => 'Effective From',
+            'effective_to' => 'Effective To',
+            'created_at' => 'Created At',
+            'updated_at' => 'Updated At',
+        ] as $field => $label)
 
-                    @foreach([
+            <tr>
+                <th style="width: 35%; background-color: #f8f9fa;">
+                    {{ $label }}
+                </th>
 
-                        'id' => 'Salary ID',
+                <td id="view_salary_{{ $field }}">
+                    —
+                </td>
+            </tr>
 
-                        'employee_id' => 'Employee ID',
-
-                        'employee' => 'Employee',
-
-                        'basic_salary' => 'Basic Salary',
-
-                        'hra' => 'HRA',
-
-                        'allowances' => 'Allowances',
-
-                        'deductions' => 'Deductions',
-
-                        'gross_salary' => 'Gross Salary',
-
-                        'net_salary' => 'Net Salary',
-
-                        'effective_from' => 'Effective From',
-
-                        'effective_to' => 'Effective To',
-
-                        'created_at' => 'Created At',
-
-                        'updated_at' => 'Updated At',
-
-                    ] as $field => $label)
-
-                        <div class="col-md-6">
-
-                            <label class="form-label" for="view_salary_{{ $field }}">{{ $label }}</label>
-
-                            <input type="text" class="form-control"
-
-                                   id="view_salary_{{ $field }}" disabled>
-
-                        </div>
-
-                    @endforeach
-
-                </div>
+        @endforeach
+    </tbody>
+</table>
 
             </div>
 
@@ -614,8 +601,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     updated_at: salary.updated_at || '—'
                 };
                 Object.entries(values).forEach(([key, value]) => {
-                    const field = document.getElementById(`view_salary_${key}`);
-                    if (field) field.value = value;
+                    const td = document.getElementById(`view_salary_${key}`);
+                    // if (field) field.value = value;
+
+                    if (key === 'created_at' || key === 'updated_at' || key === 'effective_from' || key === 'effective_to') {
+            value = formatDate(value);
+        }
+
+
+                    if (td) {
+                        td.textContent = td.value = value || '—';
+                    }
                 });
                 viewModal.show();
             } catch (error) {
@@ -730,5 +726,39 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+
+
+
+
+function formatDate(dateString) {
+    if (!dateString) return '';
+
+    const date = new Date(dateString);
+
+    if (isNaN(date.getTime())) return '';
+
+    const day = date.getDate();
+
+    const suffix =
+        day % 10 === 1 && day !== 11 ? 'st' :
+        day % 10 === 2 && day !== 12 ? 'nd' :
+        day % 10 === 3 && day !== 13 ? 'rd' : 'th';
+
+    const month = date.toLocaleString('en-GB', {
+        month: 'long'
+    });
+
+    const year = date.getFullYear();
+
+    return `${day}${suffix} ${month} ${year}`;
+}
+
+
+
+
+
+
+
 </script>
 @endsection

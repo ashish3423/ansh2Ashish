@@ -905,6 +905,12 @@ html[data-coreui-theme="dark"] .modal-content {
     border-color: #394457 !important;
 }
 
+
+
+
+
+
+
 html[data-coreui-theme="dark"] .modal-header,
 html[data-coreui-theme="dark"] .modal-footer {
     border-color: #394457 !important;
@@ -932,7 +938,8 @@ html[data-coreui-theme="dark"] #employeeModal .modal-footer, html[data-coreui-th
 
 /* Modal Header */
 #employeeModal .modal-header,
-#salaryModal .modal-header {
+#salaryModal .modal-header,
+#viewSalaryModal .modal-header {
     padding: 20px 24px;
     background: #f7f8ff;
     border-bottom: 1px solid #e7eaf4;
@@ -940,7 +947,8 @@ html[data-coreui-theme="dark"] #employeeModal .modal-footer, html[data-coreui-th
 
 /* Modal Title */
 #employeeModal .modal-title,
-#salaryModal .modal-title {
+#salaryModal .modal-title,
+#viewSalaryModal .modal-title {
     color: #1e2d50;
     font-size: 20px;
     font-weight: 700;
@@ -949,7 +957,8 @@ html[data-coreui-theme="dark"] #employeeModal .modal-footer, html[data-coreui-th
 
 /* Modal Body */
 #employeeModal .modal-body,
-#salaryModal .modal-body {
+#salaryModal .modal-body,
+#viewSalaryModal .modal-body {
     padding: 24px;
     background: #ffffff;
 }

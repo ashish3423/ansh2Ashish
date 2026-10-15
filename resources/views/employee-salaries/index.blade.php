@@ -46,7 +46,77 @@
 
                 <div class="row g-3 align-items-end">
 
-                    @foreach(['id' => 'Salary ID', 'employee_id' => 'Employee ID', 'basic_salary' => 'Basic Salary', 'hra' => 'HRA', 'allowances' => 'Allowances', 'deductions' => 'Deductions', 'gross_salary' => 'Gross Salary', 'net_salary' => 'Net Salary'] as $field => $label)
+<style>
+/* Employee dropdown */
+#filter_employee_id {
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+/* Employee dropdown options */
+#filter_employee_id option {
+    padding: 8px;
+}
+
+/* Scrollbar styling */
+#filter_employee_id::-webkit-scrollbar {
+    width: 8px;
+}
+
+#filter_employee_id::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+#filter_employee_id::-webkit-scrollbar-thumb {
+    background: #999;
+    border-radius: 5px;
+}
+
+#filter_employee_id::-webkit-scrollbar-thumb:hover {
+    background: #666;
+}
+</style>
+<div class="col-sm-6 col-lg-3">
+    <label for="filter_employee_id" class="form-label">
+        Employee
+    </label>
+
+    <select name="employee_id"
+            id="filter_employee_id"
+            class="form-select">
+
+        <option value="">All Employees</option>
+
+        @foreach($employees as $employee)
+            <option value="{{ $employee->id }}"
+                {{ request('employee_id') == $employee->id ? 'selected' : '' }}>
+
+                {{ $employee->employee_code }} —
+                {{ $employee->first_name }}
+                {{ $employee->last_name }}
+            </option>
+        @endforeach
+
+    </select>
+</div>
+
+
+
+
+
+
+
+                    @foreach(['basic_salary' => 'Basic Salary', 'deductions' => 'Deductions', 'gross_salary' => 'Gross Salary', 'net_salary' => 'Net Salary'] as $field => $label)
+
+
+                    
+
+
+
+
+
+
+
 
                         <div class="col-sm-6 col-lg-3">
 
@@ -62,7 +132,7 @@
 
                     @endforeach
 
-                    @foreach(['effective_from' => 'Effective From', 'effective_to' => 'Effective To'] as $field => $label)
+                    <!-- @foreach(['effective_from' => 'Effective From', 'effective_to' => 'Effective To'] as $field => $label)
 
                         <div class="col-sm-6 col-lg-3">
 
@@ -72,7 +142,7 @@
 
                         </div>
 
-                    @endforeach
+                    @endforeach -->
 
                     <div class="col-sm-6 col-lg-3 d-flex gap-2">
 

@@ -13,39 +13,104 @@ class EmployeeSalaryController extends Controller
 
     public function index(Request $request)
     {
-        $query = DB::table('employee_salaries')
-            ->join('employees', 'employees.id', '=', 'employee_salaries.employee_id')
-            ->select('employee_salaries.*', 'employees.employee_code', 'employees.first_name', 'employees.last_name');
+        // $query = DB::table('employee_salaries')
+        //     ->join('employees', 'employees.id', '=', 'employee_salaries.employee_id')
+        //     ->select('employee_salaries.*', 'employees.employee_code', 'employees.first_name', 'employees.last_name');
 
-        foreach (['id', 'employee_id'] as $field) {
-            if ($request->filled($field)) {
-                $query->where("employee_salaries.{$field}", $request->input($field));
-            }
+        // foreach (['id', 'employee_id'] as $field) {
+        //     if ($request->filled($field)) {
+        //         $query->where("employee_salaries.{$field}", $request->input($field));
+        //     }
+        // }
+
+        // foreach (self::FILTERABLE_AMOUNT_FIELDS as $field) {
+        //     if ($request->filled($field)) {
+        //         $query->where("employee_salaries.{$field}", $request->input($field));
+        //     }
+        // }
+
+        // foreach (['effective_from', 'effective_to'] as $field) {
+        //     if ($request->filled($field)) {
+        //         $query->whereDate("employee_salaries.{$field}", $request->input($field));
+        //     }
+        // }
+
+        // $salaries = $query->orderByDesc('employee_salaries.id')
+        //     ->paginate(10)
+        //     ->withQueryString();
+
+        // $employees = DB::table('employees')
+        //     ->select('id', 'employee_code', 'first_name', 'last_name')
+        //     ->orderBy('first_name')
+        //     ->orderBy('last_name')
+        //     ->get();
+
+        // return view('employee-salaries.index', compact('salaries', 'employees'));
+
+
+            $query = DB::table('employee_salaries as s')
+        ->join('employees as e', 'e.id', '=', 's.employee_id')
+        ->select(
+            's.*',
+            'e.employee_code',
+            'e.first_name',
+            'e.last_name'
+        );
+
+    // Filter by Salary ID
+    if ($request->filled('id')) {
+        $query->where('s.id', $request->id);
+    }
+
+    // Filter by selected Employee
+    if ($request->filled('employee_id')) {
+        $query->where('s.employee_id', $request->employee_id);
+    }
+
+    // Numeric filters
+    foreach ([
+        'basic_salary',
+        'hra',
+        'allowances',
+        'deductions',
+        'gross_salary',
+        'net_salary'
+    ] as $field) {
+        if ($request->filled($field)) {
+            $query->where("s.$field", $request->input($field));
         }
+    }
 
-        foreach (self::FILTERABLE_AMOUNT_FIELDS as $field) {
-            if ($request->filled($field)) {
-                $query->where("employee_salaries.{$field}", $request->input($field));
-            }
-        }
+    // Date filters
+    if ($request->filled('effective_from')) {
+        $query->whereDate(
+            's.effective_from',
+            $request->effective_from
+        );
+    }
 
-        foreach (['effective_from', 'effective_to'] as $field) {
-            if ($request->filled($field)) {
-                $query->whereDate("employee_salaries.{$field}", $request->input($field));
-            }
-        }
+    if ($request->filled('effective_to')) {
+        $query->whereDate(
+            's.effective_to',
+            $request->effective_to
+        );
+    }
 
-        $salaries = $query->orderByDesc('employee_salaries.id')
-            ->paginate(10)
-            ->withQueryString();
+    $salaries = $query
+        ->orderByDesc('s.id')
+        ->paginate(10)
+        ->withQueryString();
 
-        $employees = DB::table('employees')
-            ->select('id', 'employee_code', 'first_name', 'last_name')
-            ->orderBy('first_name')
-            ->orderBy('last_name')
-            ->get();
+    // Unique employees for the dropdown
+    $employees = DB::table('employees')
+        ->select('id', 'employee_code', 'first_name', 'last_name')
+        ->orderBy('employee_code')
+        ->get();
 
-        return view('employee-salaries.index', compact('salaries', 'employees'));
+    return view('employee-salaries.index', compact(
+        'salaries',
+        'employees'
+    ));
     }
 
     public function store(Request $request)

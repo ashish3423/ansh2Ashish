@@ -82,7 +82,16 @@ class EmployeeSalaryController extends Controller
 
     // Unique employees for the dropdown
     $employees = DB::table('employees')
-        ->select('id', 'employee_code', 'first_name', 'last_name', 'designation')
+        ->select(
+            'id',
+            'employee_code',
+            'first_name',
+            'last_name',
+            'designation',
+            'department',
+            'wages_rate_per_day',
+            'emp_type'
+        )
         ->orderBy('employee_code')
         ->get();
 

@@ -388,7 +388,13 @@
 
                                 @foreach($employees as $employee)
 
-                                    <option value="{{ $employee->id }}" data-designation="{{ $employee->designation }}">{{ $employee->employee_code }} — {{ $employee->first_name }} {{ $employee->last_name }}</option>
+                                    <option value="{{ $employee->id }}"
+                                            data-designation="{{ $employee->designation }}"
+                                            data-department="{{ $employee->department }}"
+                                            data-wages-rate-per-day="{{ $employee->wages_rate_per_day }}"
+                                            data-emp-type="{{ $employee->emp_type }}">
+                                        {{ $employee->employee_code }} — {{ $employee->first_name }} {{ $employee->last_name }}
+                                    </option>
 
                                 @endforeach
 
@@ -401,6 +407,30 @@
                             <label for="salary_designation" class="form-label">Designation</label>
 
                             <input type="text" id="salary_designation" class="form-control" readonly>
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <label for="salary_department" class="form-label">Department</label>
+
+                            <input type="text" id="salary_department" class="form-control" readonly>
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <label for="salary_wages_rate_per_day" class="form-label">Daily Wages Rate (<i class="bi bi-currency-rupee"></i>)</label>
+
+                            <input type="text" id="salary_wages_rate_per_day" class="form-control" readonly>
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <label for="salary_emp_type" class="form-label">Employee Category</label>
+
+                            <input type="text" id="salary_emp_type" class="form-control" readonly>
 
                         </div>
 
@@ -588,14 +618,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveButton = document.getElementById('saveSalaryBtn');
     const formAlert = document.getElementById('salaryFormAlert');
     const employeeSelect = document.getElementById('salary_employee_id');
-    const designationField = document.getElementById('salary_designation');
     let deleteId = null;
 
-    function updateDesignation() {
-        designationField.value = employeeSelect.selectedOptions[0]?.dataset.designation || '';
+    function updateEmployeeDetails() {
+        const employee = employeeSelect.selectedOptions[0];
+        const employeeTypes = {
+            '0': 'Unskilled',
+            '1': 'Skilled',
+            '2': 'Semi-Skilled',
+            '3': 'Highly Skilled'
+        };
+
+        document.getElementById('salary_designation').value = employee?.dataset.designation || '';
+        document.getElementById('salary_department').value = employee?.dataset.department || '';
+        document.getElementById('salary_wages_rate_per_day').value =
+            employee?.dataset.wagesRatePerDay || '';
+        document.getElementById('salary_emp_type').value =
+            employeeTypes[employee?.dataset.empType] || '';
     }
 
-    employeeSelect.addEventListener('change', updateDesignation);
+    employeeSelect.addEventListener('change', updateEmployeeDetails);
 
     function clearErrors() {
         form.querySelectorAll('.is-invalid').forEach(field => field.classList.remove('is-invalid'));
@@ -618,6 +660,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('addSalaryBtn')?.addEventListener('click', () => {
         form.reset();
         clearErrors();
+        updateEmployeeDetails();
         recalculate();
         form.action = baseUrl;
         document.getElementById('salaryMethod').value = 'POST';
@@ -683,7 +726,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         field.value = value;
                     }
                 });
-                updateDesignation();
+                updateEmployeeDetails();
                 form.action = `${baseUrl}/${salary.id}`;
                 document.getElementById('salaryMethod').value = 'PUT';
                 document.getElementById('salaryModalLabel').textContent = 'Edit Employee Salary';

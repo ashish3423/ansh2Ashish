@@ -16,9 +16,9 @@
 
         <div>
 
-            <h3 class="mb-1">Employee Salaries</h3>
+            <h4 class="mb-1">Employee Salaries</h4>
 
-            <p class="text-muted mb-0">Manage salary details and effective dates</p>
+            <p class="text-muted mb-0">Manage Salary details</p>
 
         </div>
 
@@ -132,18 +132,6 @@
 
                     @endforeach
 
-                    <!-- @foreach(['effective_from' => 'Effective From', 'effective_to' => 'Effective To'] as $field => $label)
-
-                        <div class="col-sm-6 col-lg-3">
-
-                            <label for="filter_{{ $field }}" class="form-label">{{ $label }}</label>
-
-                            <input type="date" name="{{ $field }}" id="filter_{{ $field }}" class="form-control" value="{{ request($field) }}">
-
-                        </div>
-
-                    @endforeach -->
-
                     <div class="col-sm-6 col-lg-3 d-flex gap-2">
 
                         <button type="submit" class="btn btn-primary">Filter</button>
@@ -178,7 +166,7 @@
 
                             <th>ID</th><th>Employee</th><th>Basic</th><th>HRA</th><th>Allowances</th>
 
-                            <th>Deductions</th><th>Gross</th><th>Net</th><th>Effective From</th><th>Effective To</th><th>Actions</th>
+                            <th>Deductions</th><th>Gross</th><th>Net</th><th>Actions</th>
 
                         </tr>
 
@@ -205,12 +193,6 @@
                                 <td>{{ number_format((float) $salary->gross_salary, 2) }}</td>
 
                                 <td>{{ number_format((float) $salary->net_salary, 2) }}</td>
-
-                                <td>{{ \Carbon\Carbon::parse($salary->effective_from)->format('d-m-Y') }}</td>
-
-                                <td>{{ $salary->effective_to ? \Carbon\Carbon::parse($salary->effective_to)->format('d-m-Y') : '—' }}</td>
-
-
 
 <td class="salary-actions">
 
@@ -302,7 +284,7 @@
 
                         @empty
 
-                            <tr><td colspan="11" class="text-center py-4">No salary records found.</td></tr>
+                            <tr><td colspan="9" class="text-center py-4">No salary records found.</td></tr>
 
                         @endforelse
 
@@ -406,11 +388,19 @@
 
                                 @foreach($employees as $employee)
 
-                                    <option value="{{ $employee->id }}">{{ $employee->employee_code }} — {{ $employee->first_name }} {{ $employee->last_name }}</option>
+                                    <option value="{{ $employee->id }}" data-designation="{{ $employee->designation }}">{{ $employee->employee_code }} — {{ $employee->first_name }} {{ $employee->last_name }}</option>
 
                                 @endforeach
 
                             </select><div class="invalid-feedback"></div>
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <label for="salary_designation" class="form-label">Designation</label>
+
+                            <input type="text" id="salary_designation" class="form-control" readonly>
 
                         </div>
 
@@ -441,22 +431,6 @@
                             <label for="salary_net_salary" class="form-label">Net Salary</label>
 
                             <input type="number" id="salary_net_salary" class="form-control" value="0.00" readonly>
-
-                        </div>
-
-                        <div class="col-md-6">
-
-                            <label for="salary_effective_from" class="form-label">Effective From <span class="text-danger">\*</span></label>
-
-                            <input type="date" name="effective_from" id="salary_effective_from" class="form-control" required><div class="invalid-feedback"></div>
-
-                        </div>
-
-                        <div class="col-md-6">
-
-                            <label for="salary_effective_to" class="form-label">Effective To</label>
-
-                            <input type="date" name="effective_to" id="salary_effective_to" class="form-control"><div class="invalid-feedback"></div>
 
                         </div>
 
@@ -549,8 +523,6 @@
             'deductions' => 'Deductions',
             'gross_salary' => 'Gross Salary',
             'net_salary' => 'Net Salary',
-            'effective_from' => 'Effective From',
-            'effective_to' => 'Effective To',
             'created_at' => 'Created At',
             'updated_at' => 'Updated At',
         ] as $field => $label)
@@ -615,7 +587,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const csrf = csrfMeta ? csrfMeta.content : (form.querySelector('input[name="_token"]')?.value || '');
     const saveButton = document.getElementById('saveSalaryBtn');
     const formAlert = document.getElementById('salaryFormAlert');
+    const employeeSelect = document.getElementById('salary_employee_id');
+    const designationField = document.getElementById('salary_designation');
     let deleteId = null;
+
+    function updateDesignation() {
+        designationField.value = employeeSelect.selectedOptions[0]?.dataset.designation || '';
+    }
+
+    employeeSelect.addEventListener('change', updateDesignation);
 
     function clearErrors() {
         form.querySelectorAll('.is-invalid').forEach(field => field.classList.remove('is-invalid'));
@@ -665,8 +645,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     deductions: Number(salary.deductions || 0).toFixed(2),
                     gross_salary: Number(salary.gross_salary || 0).toFixed(2),
                     net_salary: Number(salary.net_salary || 0).toFixed(2),
-                    effective_from: salary.effective_from || '—',
-                    effective_to: salary.effective_to || '—',
                     created_at: salary.created_at || '—',
                     updated_at: salary.updated_at || '—'
                 };
@@ -674,7 +652,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const td = document.getElementById(`view_salary_${key}`);
                     // if (field) field.value = value;
 
-                    if (key === 'created_at' || key === 'updated_at' || key === 'effective_from' || key === 'effective_to') {
+                    if (key === 'created_at' || key === 'updated_at') {
             value = formatDate(value);
         }
 
@@ -705,6 +683,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         field.value = value;
                     }
                 });
+                updateDesignation();
                 form.action = `${baseUrl}/${salary.id}`;
                 document.getElementById('salaryMethod').value = 'PUT';
                 document.getElementById('salaryModalLabel').textContent = 'Edit Employee Salary';

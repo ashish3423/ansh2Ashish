@@ -412,16 +412,6 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label for="employee_code" class="form-label">
-                                Employee Code <span class="text-danger">*</span>
-                            </label>
-                            <input type="text" name="employee_code"
-                                   id="employee_code" class="form-control"
-                                   required>
-                            <div class="invalid-feedback"></div>
-                        </div>
-
-                        <div class="col-md-6">
                             <label for="first_name" class="form-label">
                                 First Name <span class="text-danger">*</span>
                             </label>
@@ -451,6 +441,40 @@
                             <label for="phone" class="form-label">Phone</label>
                             <input type="text" name="phone" id="phone"
                                    class="form-control">
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="photo" class="form-label">Employee Photo</label>
+                            <input type="file" name="photo" id="photo"
+                                   class="form-control" accept="image/jpeg,image/png,image/gif,image/webp">
+                            <div class="invalid-feedback"></div>
+                            <img id="photoPreview" class="img-thumbnail mt-2 d-none"
+                                 alt="Employee photo preview" style="max-height: 140px;">
+                        </div>
+
+
+                        <div class="col-md-6">
+                            <label for="emp_type" class="form-label">
+                                Employee Category
+                            </label>
+                            <select name="emp_type" id="emp_type" class="form-select">
+                                <option value="0">Unskilled</option>
+                                <option value="1">Skilled</option>
+                                <option value="2">Semi- Skilled</option>
+                                <option value="3">Highly Skilled</option>
+                                <!-- <option value="1">Unskilled</option> -->
+                            </select>
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+
+                         <div class="col-md-6">
+                            <label for="joining_date" class="form-label">
+                                Joining Date
+                            </label>
+                            <input type="date" name="joining_date"
+                                   id="joining_date" class="form-control">
                             <div class="invalid-feedback"></div>
                         </div>
 
@@ -502,6 +526,16 @@
                             </label>
                             <input type="text" name="driving_license_number"
                                    id="driving_license_number" class="form-control">
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+
+                        <div class="col-md-6">
+                            <label for="wages_rate_per_day" class="form-label">
+                                Daily Wages Rate (<i class="bi bi-currency-rupee"></i>)
+                            </label>
+                            <input type="text" name="wages_rate_per_day"
+                                   id="wages_rate_per_day" class="form-control">
                             <div class="invalid-feedback"></div>
                         </div>
 
@@ -567,12 +601,24 @@
 
 
 
+                       
+
+
                         <div class="col-md-6">
-                            <label for="joining_date" class="form-label">
-                                Joining Date
+                            <label for="reference_number_1" class="form-label">
+                                Reference Number 1
                             </label>
-                            <input type="date" name="joining_date"
-                                   id="joining_date" class="form-control">
+                            <input type="text" name="reference_number_1"
+                                   id="reference_number_1" class="form-control">
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="reference_number_2" class="form-label">
+                                Reference Number 2
+                            </label>
+                            <input type="text" name="reference_number_2"
+                                   id="reference_number_2" class="form-control">
                             <div class="invalid-feedback"></div>
                         </div>
 
@@ -821,24 +867,36 @@
 
 <table class="table table-bordered table-hover align-middle">
     <tbody>
+        <tr>
+            <th style="width: 35%; background-color: #f8f9fa;">Employee Photo</th>
+            <td id="view_employee_photo">
+                <img id="view_employee_photo_image" class="img-thumbnail d-none"
+                     alt="Employee photo" style="max-height: 180px;">
+                <span id="view_employee_photo_empty">—</span>
+            </td>
+        </tr>
         @foreach([
-            'id' => 'ID',
+            
             'employee_code' => 'Employee Code',
             'first_name' => 'First Name',
             'last_name' => 'Last Name',
             'email' => 'Email',
             'phone' => 'Phone',
+            'emp_type' => 'Employee Category',
             'work_location' => 'Work Location',
             'department' => 'Department',
             'designation' => 'Designation',
             'aadhar_number' => 'Aadhar Number',
             'driving_license_number' => 'Driving License Number',
+            'wages_rate_per_day' => 'Daily Wages Rate',
             'account_number' => 'Account Number',
             'ifsc_code' => 'IFSC Code',
             'uan_number' => 'UAN Number',
             'esi_number' => 'ESI Number',
             'joining_date' => 'Joining Date',
             'leaving_date' => 'Leaving Date',
+            'reference_number_1' => 'Reference Number 1',
+            'reference_number_2' => 'Reference Number 2',
 
             'id_card_status' => 'ID Card Status',
             'dress_status' => 'Dress Status',
@@ -970,6 +1028,9 @@ togglePoliceCertificate();
     const form = document.getElementById('employeeForm');
     const saveButton = document.getElementById('saveEmployeeBtn');
     const formAlert = document.getElementById('formAlert');
+    const photoInput = document.getElementById('photo');
+    const photoPreview = document.getElementById('photoPreview');
+    const storageUrl = @json(asset('storage'));
 
     const storeUrl = @json(route('employees.store'));
     const updateUrlTemplate = @json(url('/employees'));
@@ -979,6 +1040,38 @@ togglePoliceCertificate();
         || form.querySelector('input[name="_token"]').value;
 
     let deleteEmployeeId = null;
+
+    function clearPhotoObjectUrl() {
+        if (photoPreview.dataset.objectUrl) {
+            URL.revokeObjectURL(photoPreview.dataset.objectUrl);
+            delete photoPreview.dataset.objectUrl;
+        }
+    }
+
+    function setPhotoPreview(path) {
+        clearPhotoObjectUrl();
+
+        if (path) {
+            photoPreview.src = storageUrl + '/' + path.split('/').map(encodeURIComponent).join('/');
+            photoPreview.classList.remove('d-none');
+        } else {
+            photoPreview.removeAttribute('src');
+            photoPreview.classList.add('d-none');
+        }
+    }
+
+    photoInput.addEventListener('change', function () {
+        const file = photoInput.files[0];
+
+        if (file) {
+            clearPhotoObjectUrl();
+            photoPreview.dataset.objectUrl = URL.createObjectURL(file);
+            photoPreview.src = photoPreview.dataset.objectUrl;
+            photoPreview.classList.remove('d-none');
+        } else {
+            setPhotoPreview('');
+        }
+    });
 
     // Clear previous validation errors.
     function clearFormErrors() {
@@ -1038,6 +1131,7 @@ togglePoliceCertificate();
     // Add employee.
     document.getElementById('addEmployeeBtn').addEventListener('click', function () {
         form.reset();
+        setPhotoPreview('');
         togglePoliceCertificate();
         clearFormErrors();
 
@@ -1063,18 +1157,33 @@ document.addEventListener('click', function (event) {
         decodeURIComponent(button.getAttribute('data-employee'))
     );
 
+    const viewPhoto = document.getElementById('view_employee_photo_image');
+    const viewPhotoEmpty = document.getElementById('view_employee_photo_empty');
+
+    if (employee.photo) {
+        viewPhoto.src = storageUrl + '/' + employee.photo.split('/').map(encodeURIComponent).join('/');
+        viewPhoto.classList.remove('d-none');
+        viewPhotoEmpty.classList.add('d-none');
+    } else {
+        viewPhoto.removeAttribute('src');
+        viewPhoto.classList.add('d-none');
+        viewPhotoEmpty.classList.remove('d-none');
+    }
+
     const fields = [
-        'id', 
+        //'id', 
         'employee_code', 
         'first_name', 
         'last_name', 
         'email', 
         'phone', 
+        'emp_type',
         'work_location',
         'department', 
         'designation',
         'aadhar_number',
         'driving_license_number',
+        'wages_rate_per_day',
         'account_number',
         'ifsc_code',
         'uan_number',
@@ -1085,6 +1194,8 @@ document.addEventListener('click', function (event) {
         'dress_status',
         'police_verification_status',
         'police_certificate_number',
+        'reference_number_1',
+        'reference_number_2',
         'status',
         'created_at', 
         'updated_at'
@@ -1096,6 +1207,8 @@ document.addEventListener('click', function (event) {
 
 
     Object.entries(employee).forEach(([key, value]) => {
+                    if (key === 'photo') return;
+
                     const td = document.getElementById(`view_employee_${key}`);
                     // if (field) field.value = value;
 
@@ -1103,7 +1216,6 @@ document.addEventListener('click', function (event) {
                         value = formatDate(value);
                     }
                     if (key === 'id_card_status' || key === 'dress_status' || key === 'police_verification_status') {
-                        
 
                         if (value === '1') {
                             value = 'Issued';
@@ -1113,6 +1225,30 @@ document.addEventListener('click', function (event) {
                             value = '—';
                         }
                     }
+                    if (key === 'emp_type') {
+                        
+                        if (value === '1') {
+                            value = 'Skilled';
+                        } else if (value === '2') {
+                            value = 'Semi-Skilled';
+                        } else if (value === '3') {
+                            value = 'Highly Skilled';
+                        } else {
+                            value = 'Unskilled';
+                        }
+                        
+                    }
+
+
+                    if (key === 'wages_rate_per_day') {
+                        
+                        
+                            value = parseFloat(value).toFixed(2) + ' ₹';
+                            
+                        
+                        
+                    }
+                    
 
 
                     if (td) {
@@ -1189,12 +1325,16 @@ document.addEventListener('click', function (event) {
 
                 if (!field) return;
 
-                if (field.type === 'checkbox') {
+            if (field.type === 'file') return;
+
+            if (field.type === 'checkbox') {
                     field.checked = Number(employee[key]) === 1;
                 } else {
                     field.value = employee[key] ?? '';
                 }
             });
+
+            setPhotoPreview(employee.photo);
 
             // Update the certificate field based on the saved switch.
             togglePoliceCertificate();

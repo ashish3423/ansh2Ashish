@@ -12,8 +12,8 @@
     <link rel="stylesheet"
           href="{{ asset('vendors/simplebar/css/simplebar.css') }}">
 
-    <link rel="stylesheet"
-          href="{{ asset('css/vendors/simplebar.css') }}">
+    <!-- <link rel="stylesheet"
+          href="{{ asset('css/vendors/simplebar.css') }}"> -->
 
     <link rel="stylesheet"
           href="{{ asset('css/style.css') }}">
@@ -26,7 +26,7 @@
       href="{{ asset('css/employee-management.css') }}">
 
 
-    <script src="{{ asset('js/config.js') }}"></script>
+    <!-- <script src="{{ asset('js/config.js') }}"></script> -->
     <script src="{{ asset('js/color-modes.js') }}"></script>
 </head>
 

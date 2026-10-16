@@ -29,12 +29,6 @@ class EmployeeSalaryController extends Controller
         //     }
         // }
 
-        // foreach (['effective_from', 'effective_to'] as $field) {
-        //     if ($request->filled($field)) {
-        //         $query->whereDate("employee_salaries.{$field}", $request->input($field));
-        //     }
-        // }
-
         // $salaries = $query->orderByDesc('employee_salaries.id')
         //     ->paginate(10)
         //     ->withQueryString();
@@ -81,21 +75,6 @@ class EmployeeSalaryController extends Controller
         }
     }
 
-    // Date filters
-    if ($request->filled('effective_from')) {
-        $query->whereDate(
-            's.effective_from',
-            $request->effective_from
-        );
-    }
-
-    if ($request->filled('effective_to')) {
-        $query->whereDate(
-            's.effective_to',
-            $request->effective_to
-        );
-    }
-
     $salaries = $query
         ->orderByDesc('s.id')
         ->paginate(10)
@@ -103,7 +82,7 @@ class EmployeeSalaryController extends Controller
 
     // Unique employees for the dropdown
     $employees = DB::table('employees')
-        ->select('id', 'employee_code', 'first_name', 'last_name')
+        ->select('id', 'employee_code', 'first_name', 'last_name', 'designation')
         ->orderBy('employee_code')
         ->get();
 
@@ -129,10 +108,14 @@ class EmployeeSalaryController extends Controller
 
     public function update(Request $request, $id)
     {
-        abort_unless(DB::table('employee_salaries')->where('id', $id)->exists(), 404, 'Salary record not found.');
+        $salary = DB::table('employee_salaries')
+            ->select('effective_from', 'effective_to')
+            ->where('id', $id)
+            ->first();
+        abort_unless($salary, 404, 'Salary record not found.');
 
         DB::table('employee_salaries')->where('id', $id)->update([
-            ...$this->validatedSalaryData($request),
+            ...$this->validatedSalaryData($request, $salary),
             'updated_at' => now(),
         ]);
 
@@ -150,7 +133,7 @@ class EmployeeSalaryController extends Controller
         return response()->json(['message' => 'Employee salary deleted successfully.']);
     }
 
-    private function validatedSalaryData(Request $request): array
+    private function validatedSalaryData(Request $request, ?object $existingSalary = null): array
     {
         $validated = $request->validate([
             'employee_id' => ['required', 'integer', 'exists:employees,id'],
@@ -158,8 +141,6 @@ class EmployeeSalaryController extends Controller
             'hra' => ['nullable', 'numeric', 'min:0', 'decimal:0,2'],
             'allowances' => ['nullable', 'numeric', 'min:0', 'decimal:0,2'],
             'deductions' => ['nullable', 'numeric', 'min:0', 'decimal:0,2'],
-            'effective_from' => ['required', 'date'],
-            'effective_to' => ['nullable', 'date', 'after_or_equal:effective_from'],
         ]);
 
         $basic = (float) $validated['basic_salary'];
@@ -176,8 +157,8 @@ class EmployeeSalaryController extends Controller
             'deductions' => $deductions,
             'gross_salary' => $gross,
             'net_salary' => round($gross - $deductions, 2),
-            'effective_from' => $validated['effective_from'],
-            'effective_to' => $validated['effective_to'] ?? null,
+            'effective_from' => $existingSalary->effective_from ?? now()->toDateString(),
+            'effective_to' => $existingSalary->effective_to ?? null,
         ];
     }
 }

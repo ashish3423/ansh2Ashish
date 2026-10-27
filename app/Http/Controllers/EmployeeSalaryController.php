@@ -4,101 +4,96 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Support\SalaryExport;
 
 class EmployeeSalaryController extends Controller
 {
-    private const FILTERABLE_AMOUNT_FIELDS = [
-        'basic_salary', 'hra', 'allowances', 'deductions', 'gross_salary', 'net_salary',
-    ];
-
     public function index(Request $request)
     {
-        // $query = DB::table('employee_salaries')
-        //     ->join('employees', 'employees.id', '=', 'employee_salaries.employee_id')
-        //     ->select('employee_salaries.*', 'employees.employee_code', 'employees.first_name', 'employees.last_name');
+        $salaries = $this->filteredSalaryQuery($request)
+            ->paginate(10)
+            ->withQueryString();
+        $employees = DB::table('employees')
+            ->select(
+                'id',
+                'employee_code',
+                'first_name',
+                'last_name',
+                'designation',
+                'work_location',
+                'wages_rate_per_day',
+                'emp_type'
+            )
+            ->orderBy('employee_code')
+            ->get();
+        $contractsByEmployee = DB::table('contracts')
+            ->select('employee_id', 'contract_number', 'title', 'status')
+            ->orderByRaw("CASE WHEN status = 'active' THEN 0 ELSE 1 END")
+            ->orderByDesc('id')
+            ->get()
+            ->unique('employee_id')
+            ->keyBy('employee_id');
+        $salaries->getCollection()->transform(function (object $salary) use ($contractsByEmployee) {
+            $contract = $contractsByEmployee->get($salary->employee_id);
+            $salary->contract_number = $contract->contract_number ?? null;
+            $salary->contract_name = $contract->title ?? null;
 
-        // foreach (['id', 'employee_id'] as $field) {
-        //     if ($request->filled($field)) {
-        //         $query->where("employee_salaries.{$field}", $request->input($field));
-        //     }
-        // }
+            return $salary;
+        });
+        $complianceSettings = DB::table('employee_compliance_settings')->where('id', 1)->first();
 
-        // foreach (self::FILTERABLE_AMOUNT_FIELDS as $field) {
-        //     if ($request->filled($field)) {
-        //         $query->where("employee_salaries.{$field}", $request->input($field));
-        //     }
-        // }
-
-        // $salaries = $query->orderByDesc('employee_salaries.id')
-        //     ->paginate(10)
-        //     ->withQueryString();
-
-        // $employees = DB::table('employees')
-        //     ->select('id', 'employee_code', 'first_name', 'last_name')
-        //     ->orderBy('first_name')
-        //     ->orderBy('last_name')
-        //     ->get();
-
-        // return view('employee-salaries.index', compact('salaries', 'employees'));
-
-
-            $query = DB::table('employee_salaries as s')
-        ->join('employees as e', 'e.id', '=', 's.employee_id')
-        ->select(
-            's.*',
-            'e.employee_code',
-            'e.first_name',
-            'e.last_name'
-        );
-
-    // Filter by Salary ID
-    if ($request->filled('id')) {
-        $query->where('s.id', $request->id);
+        return view('employee-salaries.index', compact(
+            'salaries',
+            'employees',
+            'contractsByEmployee',
+            'complianceSettings'
+        ));
     }
 
-    // Filter by selected Employee
-    if ($request->filled('employee_id')) {
-        $query->where('s.employee_id', $request->employee_id);
-    }
+    public function export(Request $request, SalaryExport $exporter)
+    {
+        $validated = $request->validate([
+            'selected_ids' => ['sometimes', 'array'],
+            'selected_ids.*' => ['integer', 'distinct', 'exists:employee_salaries,id'],
+        ]);
 
-    // Numeric filters
-    foreach ([
-        'basic_salary',
-        'hra',
-        'allowances',
-        'deductions',
-        'gross_salary',
-        'net_salary'
-    ] as $field) {
-        if ($request->filled($field)) {
-            $query->where("s.$field", $request->input($field));
+        $query = $this->filteredSalaryQuery($request);
+        if (! empty($validated['selected_ids'])) {
+            $query->whereIn('s.id', $validated['selected_ids']);
         }
-    }
 
-    $salaries = $query
-        ->orderByDesc('s.id')
-        ->paginate(10)
-        ->withQueryString();
+        $salaries = $query->get();
+        $contractsByEmployee = $this->contractsByEmployee($salaries->pluck('employee_id')->all());
+        $rows = $salaries->map(function (object $salary) use ($contractsByEmployee): array {
+            $contract = $contractsByEmployee->get($salary->employee_id);
 
-    // Unique employees for the dropdown
-    $employees = DB::table('employees')
-        ->select(
-            'id',
-            'employee_code',
-            'first_name',
-            'last_name',
-            'designation',
-            'department',
-            'wages_rate_per_day',
-            'emp_type'
-        )
-        ->orderBy('employee_code')
-        ->get();
+            return [
+                $salary->id,
+                trim($salary->employee_code . ' — ' . $salary->first_name . ' ' . ($salary->last_name ?? '')),
+                $contract->contract_number ?? '-',
+                $contract->title ?? '-',
+                $salary->daily_wage === null ? '-' : (float) $salary->daily_wage,
+                (float) $salary->working_days,
+                (float) $salary->total_salary,
+                (float) $salary->bonus_amount,
+                (float) $salary->epf_employee_contribution,
+                (float) $salary->epf_employer_contribution,
+                (float) $salary->esi_employee_contribution,
+                (float) $salary->esi_employer_contribution,
+                (float) $salary->gross_salary,
+                (float) $salary->deductions,
+                (float) $salary->net_salary,
+            ];
+        })->all();
 
-    return view('employee-salaries.index', compact(
-        'salaries',
-        'employees'
-    ));
+        $headings = [
+            'ID', 'Employee', 'Contract Number', 'Contract Name', 'Daily Wages',
+            'Working Days', 'Total Salary', 'Bonus', 'EPF Employee',
+            'EPF Employer', 'ESI Employee', 'ESI Employer', 'Gross Total',
+            'Deductions', 'Net Salary',
+        ];
+
+        return $exporter->downloadXlsx($headings, $rows);
     }
 
     public function store(Request $request)
@@ -146,28 +141,100 @@ class EmployeeSalaryController extends Controller
     {
         $validated = $request->validate([
             'employee_id' => ['required', 'integer', 'exists:employees,id'],
-            'basic_salary' => ['required', 'numeric', 'min:0', 'decimal:0,2'],
-            'hra' => ['nullable', 'numeric', 'min:0', 'decimal:0,2'],
-            'allowances' => ['nullable', 'numeric', 'min:0', 'decimal:0,2'],
-            'deductions' => ['nullable', 'numeric', 'min:0', 'decimal:0,2'],
+            'working_days' => ['required', 'numeric', 'min:0', 'max:31', 'decimal:0,2'],
+            'bonus_amount' => ['nullable', 'numeric', 'min:0', 'decimal:0,2'],
         ]);
 
-        $basic = (float) $validated['basic_salary'];
-        $hra = (float) ($validated['hra'] ?? 0);
-        $allowances = (float) ($validated['allowances'] ?? 0);
-        $deductions = (float) ($validated['deductions'] ?? 0);
-        $gross = round($basic + $hra + $allowances, 2);
+        $employee = DB::table('employees')
+            ->select('wages_rate_per_day')
+            ->where('id', $validated['employee_id'])
+            ->first();
+        abort_unless($employee, 404, 'Employee not found.');
+
+        $settings = DB::table('employee_compliance_settings')->where('id', 1)->first();
+        $workingDays = (float) $validated['working_days'];
+        $totalSalary = round($workingDays * (float) ($employee->wages_rate_per_day ?? 0), 2);
+        $epfEligible = $settings
+            && $settings->epf_eligibility_amount !== null
+            && $totalSalary >= (float) $settings->epf_eligibility_amount;
+        $bonusEligible = $settings
+            && $settings->bonus_eligibility_amount !== null
+            && $totalSalary > (float) $settings->bonus_eligibility_amount;
+        $bonus = (float) ($validated['bonus_amount'] ?? 0);
+
+        if ($bonus > 0 && ! $bonusEligible) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'bonus_amount' => 'This employee does not meet the bonus eligibility threshold.',
+            ]);
+        }
+
+        $epfEmployee = $epfEligible
+            ? round($totalSalary * (float) ($settings->epf_employee_percentage ?? 0) / 100, 2)
+            : 0;
+        $epfEmployer = $epfEligible
+            ? round($totalSalary * (float) ($settings->epf_employer_percentage ?? 0) / 100, 2)
+            : 0;
+        $esiEmployee = round($totalSalary * (float) ($settings->esi_employee_percentage ?? 0) / 100, 2);
+        $esiEmployer = round($totalSalary * (float) ($settings->esi_employer_percentage ?? 0) / 100, 2);
+        $deductions = round($epfEmployee + $esiEmployee, 2);
+        $gross = round($totalSalary + $bonus + $epfEmployer + $esiEmployer, 2);
+        $net = round($gross - $epfEmployer - $esiEmployer - $deductions, 2);
 
         return [
             'employee_id' => $validated['employee_id'],
-            'basic_salary' => $basic,
-            'hra' => $hra,
-            'allowances' => $allowances,
+            'working_days' => $workingDays,
+            'eligibility_salary' => $totalSalary,
+            'total_salary' => $totalSalary,
+            'basic_salary' => 0,
+            'hra' => 0,
+            'allowances' => 0,
             'deductions' => $deductions,
+            'bonus_amount' => $bonus,
+            'epf_employee_contribution' => $epfEmployee,
+            'epf_employer_contribution' => $epfEmployer,
+            'esi_employee_contribution' => $esiEmployee,
+            'esi_employer_contribution' => $esiEmployer,
             'gross_salary' => $gross,
-            'net_salary' => round($gross - $deductions, 2),
+            'net_salary' => $net,
             'effective_from' => $existingSalary->effective_from ?? now()->toDateString(),
             'effective_to' => $existingSalary->effective_to ?? null,
         ];
+    }
+
+    private function filteredSalaryQuery(Request $request)
+    {
+        $query = DB::table('employee_salaries as s')
+            ->join('employees as e', 'e.id', '=', 's.employee_id')
+            ->select(
+                's.*',
+                'e.employee_code',
+                'e.first_name',
+                'e.last_name',
+                'e.wages_rate_per_day as daily_wage'
+            );
+
+        if ($request->filled('employee_id')) {
+            $query->where('s.employee_id', $request->input('employee_id'));
+        }
+
+        foreach (['total_salary', 'bonus_amount', 'deductions', 'gross_salary', 'net_salary'] as $field) {
+            if ($request->filled($field)) {
+                $query->where("s.{$field}", $request->input($field));
+            }
+        }
+
+        return $query->orderByDesc('s.id');
+    }
+
+    private function contractsByEmployee(array $employeeIds): \Illuminate\Support\Collection
+    {
+        return DB::table('contracts')
+            ->select('employee_id', 'contract_number', 'title', 'status')
+            ->whereIn('employee_id', $employeeIds)
+            ->orderByRaw("CASE WHEN status = 'active' THEN 0 ELSE 1 END")
+            ->orderByDesc('id')
+            ->get()
+            ->unique('employee_id')
+            ->keyBy('employee_id');
     }
 }

@@ -22,11 +22,11 @@
 
         </div>
 
-        <button type="button" class="btn btn-primary" id="addSalaryBtn">
-
-            <i class="bi bi-plus-circle"></i> Add Salary
-
-        </button>
+        @can('records.create')
+            <button type="button" class="btn btn-primary" id="addSalaryBtn">
+                <i class="bi bi-plus-circle"></i> Add Salary
+            </button>
+        @endcan
 
     </div>
 
@@ -106,30 +106,12 @@
 
 
 
-                    @foreach(['basic_salary' => 'Basic Salary', 'deductions' => 'Deductions', 'gross_salary' => 'Gross Salary', 'net_salary' => 'Net Salary'] as $field => $label)
-
-
-                    
-
-
-
-
-
-
-
-
+                    @foreach(['total_salary' => 'Total Salary', 'bonus_amount' => 'Bonus', 'gross_salary' => 'Gross Total', 'deductions' => 'Deductions', 'net_salary' => 'Net Salary'] as $field => $label)
                         <div class="col-sm-6 col-lg-3">
-
                             <label for="filter_{{ $field }}" class="form-label">{{ $label }}</label>
-
-                            <input type="number" @if(str_contains($field, 'salary') || in_array($field, ['hra', 'allowances', 'deductions'])) step="0.01" min="0" @else min="1" step="1" @endif
-
-                                   name="{{ $field }}" id="filter_{{ $field }}" class="form-control"
-
-                                   value="{{ request($field) }}">
-
+                            <input type="number" min="0" step="0.01" name="{{ $field }}"
+                                   id="filter_{{ $field }}" class="form-control" value="{{ request($field) }}">
                         </div>
-
                     @endforeach
 
                     <div class="col-sm-6 col-lg-3 d-flex gap-2">
@@ -152,9 +134,18 @@
 
     <div class="card">
 
-        <div class="card-header bg-white"><h5 class="mb-0">Salary Records</h5></div>
+        <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0">Salary Records</h5>
+            <a href="{{ route('employee-salaries.export', request()->query()) }}"
+                   id="exportSalaryExcelBtn" class="btn btn-outline-success btn-sm">
+                    <i class="bi bi-file-earmark-excel"></i> Export Excel
+            </a>
+        </div>
 
         <div class="card-body">
+            <p class="small text-muted mb-3">
+                Select salary rows to export only those records. Leave all rows unselected to export the full list matching your filters.
+            </p>
 
             <div class="table-responsive">
 
@@ -164,9 +155,15 @@
 
                         <tr>
 
-                            <th>ID</th><th>Employee</th><th>Basic</th><th>HRA</th><th>Allowances</th>
-
-                            <th>Deductions</th><th>Gross</th><th>Net</th><th>Actions</th>
+                            <th>
+                                <input type="checkbox" class="form-check-input" id="selectAllSalaryRows"
+                                       aria-label="Select all salary rows on this page">
+                            </th>
+                            <th>ID</th><th>Employee</th><th>Contract Number</th><th>Contract Name</th>
+                            <th>Daily Wages</th><th>Working Days</th><th>Total Salary</th>
+                            <th>Bonus</th><th>EPF Employee</th><th>EPF Employer</th>
+                            <th>ESI Employee</th><th>ESI Employer</th><th>Gross Total</th>
+                            <th>Deductions</th><th>Net Salary</th><th>Actions</th>
 
                         </tr>
 
@@ -178,25 +175,31 @@
 
                             <tr>
 
+                                <td>
+                                    <input type="checkbox" class="form-check-input salary-export-checkbox"
+                                           value="{{ $salary->id }}"
+                                           aria-label="Select salary record for {{ $salary->employee_code }} {{ $salary->first_name }}">
+                                </td>
                                 <td>{{ $salary->id }}</td>
 
                                 <td>{{ $salary->employee_code }} — {{ $salary->first_name }} {{ $salary->last_name }}</td>
-
-                                <td>{{ number_format((float) $salary->basic_salary, 2) }}</td>
-
-                                <td>{{ number_format((float) $salary->hra, 2) }}</td>
-
-                                <td>{{ number_format((float) $salary->allowances, 2) }}</td>
-
-                                <td>{{ number_format((float) $salary->deductions, 2) }}</td>
-
+                                <td>{{ $salary->contract_number ?: '-' }}</td>
+                                <td>{{ $salary->contract_name ?: '-' }}</td>
+                                <td>{{ $salary->daily_wage !== null ? number_format((float) $salary->daily_wage, 2) : '-' }}</td>
+                                <td>{{ number_format((float) $salary->working_days, 2) }}</td>
+                                <td>{{ number_format((float) $salary->total_salary, 2) }}</td>
+                                <td>{{ number_format((float) $salary->bonus_amount, 2) }}</td>
+                                <td>{{ number_format((float) $salary->epf_employee_contribution, 2) }}</td>
+                                <td>{{ number_format((float) $salary->epf_employer_contribution, 2) }}</td>
+                                <td>{{ number_format((float) $salary->esi_employee_contribution, 2) }}</td>
+                                <td>{{ number_format((float) $salary->esi_employer_contribution, 2) }}</td>
                                 <td>{{ number_format((float) $salary->gross_salary, 2) }}</td>
-
+                                <td>{{ number_format((float) $salary->deductions, 2) }}</td>
                                 <td>{{ number_format((float) $salary->net_salary, 2) }}</td>
 
 <td class="salary-actions">
 
-    <!-- Edit icon -->
+    @can('records.update')
 
     <button type="button"
 
@@ -213,6 +216,7 @@
     <i class="bi bi-pencil-square"></i>
 
 </button>
+    @endcan
 
 
 
@@ -255,6 +259,7 @@
 
             </li>
 
+            @can('records.delete')
             <li>
 
                 <button type="button"
@@ -271,6 +276,7 @@
                 </button>
 
             </li>
+            @endcan
 
         </ul>
 
@@ -284,7 +290,7 @@
 
                         @empty
 
-                            <tr><td colspan="9" class="text-center py-4">No salary records found.</td></tr>
+                            <tr><td colspan="17" class="text-center py-4">No salary records found.</td></tr>
 
                         @endforelse
 
@@ -379,94 +385,100 @@
                     <div class="row g-3">
 
                         <div class="col-md-6">
-
                             <label for="salary_employee_id" class="form-label">Employee <span class="text-danger">*</span></label>
-
                             <select name="employee_id" id="salary_employee_id" class="form-select" required>
-
                                 <option value="">Select employee</option>
-
                                 @foreach($employees as $employee)
-
                                     <option value="{{ $employee->id }}"
+                                            data-daily-wage="{{ $employee->wages_rate_per_day }}"
+                                            data-emp-type="{{ $employee->emp_type }}"
                                             data-designation="{{ $employee->designation }}"
-                                            data-department="{{ $employee->department }}"
-                                            data-wages-rate-per-day="{{ $employee->wages_rate_per_day }}"
-                                            data-emp-type="{{ $employee->emp_type }}">
+                                            data-work-location="{{ $employee->work_location }}"
+                                            data-contract-number="{{ $contractsByEmployee->get($employee->id)->contract_number ?? '' }}"
+                                            data-contract-name="{{ $contractsByEmployee->get($employee->id)->title ?? '' }}">
                                         {{ $employee->employee_code }} — {{ $employee->first_name }} {{ $employee->last_name }}
                                     </option>
-
                                 @endforeach
-
-                            </select><div class="invalid-feedback"></div>
-
+                            </select>
+                            <div class="invalid-feedback"></div>
                         </div>
 
                         <div class="col-md-6">
+                            <label for="salary_contract_number" class="form-label">Contract Number</label>
+                            <input type="text" id="salary_contract_number" class="form-control" readonly>
+                        </div>
 
+                        <div class="col-md-6">
+                            <label for="salary_contract_name" class="form-label">Contract Name</label>
+                            <input type="text" id="salary_contract_name" class="form-control" readonly>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="salary_daily_wage" class="form-label">Daily Wages</label>
+                            <input type="text" id="salary_daily_wage" class="form-control" readonly>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="salary_employee_category" class="form-label">Employee Category</label>
+                            <input type="text" id="salary_employee_category" class="form-control" readonly>
+                        </div>
+
+                        <div class="col-md-6">
                             <label for="salary_designation" class="form-label">Designation</label>
-
                             <input type="text" id="salary_designation" class="form-control" readonly>
-
                         </div>
 
                         <div class="col-md-6">
-
-                            <label for="salary_department" class="form-label">Department</label>
-
-                            <input type="text" id="salary_department" class="form-control" readonly>
-
+                            <label for="salary_work_location" class="form-label">Work Location</label>
+                            <input type="text" id="salary_work_location" class="form-control" readonly>
                         </div>
 
                         <div class="col-md-6">
-
-                            <label for="salary_wages_rate_per_day" class="form-label">Daily Wages Rate (<i class="bi bi-currency-rupee"></i>)</label>
-
-                            <input type="text" id="salary_wages_rate_per_day" class="form-control" readonly>
-
+                            <label for="salary_working_days" class="form-label">Working Days</label>
+                            <input type="number" name="working_days" id="salary_working_days"
+                                   class="form-control" min="0" max="31" step="0.01" value="0" required>
+                            <div class="invalid-feedback"></div>
                         </div>
 
                         <div class="col-md-6">
-
-                            <label for="salary_emp_type" class="form-label">Employee Category</label>
-
-                            <input type="text" id="salary_emp_type" class="form-control" readonly>
-
+                            <label for="salary_total_salary" class="form-label">Total Salary (Days × Daily Wage)</label>
+                            <input type="number" id="salary_total_salary" class="form-control" value="0.00" readonly>
                         </div>
 
-                        @foreach(['basic_salary' => 'Basic Salary', 'hra' => 'HRA', 'allowances' => 'Allowances', 'deductions' => 'Deductions'] as $field => $label)
+                        <div class="col-md-6">
+                            <label for="salary_bonus_amount" class="form-label">Bonus Amount Given</label>
+                            <input type="number" name="bonus_amount" id="salary_bonus_amount"
+                                   class="form-control" min="0" step="0.01" value="0">
+                            <div class="form-text">Enabled only when total salary exceeds the bonus eligibility amount.</div>
+                            <div class="invalid-feedback"></div>
+                        </div>
 
-                            <div class="col-md-6">
-
-                                <label for="salary_{{ $field }}" class="form-label">{{ $label }} @if($field === 'basic_salary')<span class="text-danger">*</span>@endif</label>
-
-                                <input type="number" name="{{ $field }}" id="salary_{{ $field }}" class="form-control amount-input" min="0" step="0.01" {{ $field === 'basic_salary' ? 'required' : '' }} value="0">
-
-                                <div class="invalid-feedback"></div>
-
+                        <div class="col-12">
+                            <div class="alert alert-info py-2 mb-0" id="complianceEligibilityStatus">
+                                Select an employee and enter working days to calculate eligibility and contributions.
                             </div>
+                        </div>
 
+                        @foreach([
+                            'epf_employee_contribution' => 'EPF Employee Share',
+                            'epf_employer_contribution' => 'EPF Employer Share',
+                            'esi_employee_contribution' => 'ESI Employee Share',
+                            'esi_employer_contribution' => 'ESI Employer Share',
+                            'gross_salary' => 'Gross Total',
+                            'deductions' => 'Deductions (Employee EPF + ESI)',
+                            'net_salary' => 'Net Salary',
+                        ] as $field => $label)
+                            <div class="col-md-6">
+                                <label for="salary_{{ $field }}" class="form-label">{{ $label }}</label>
+                                <input type="number" id="salary_{{ $field }}" class="form-control" value="0.00" readonly>
+                            </div>
                         @endforeach
-
-                        <div class="col-md-6">
-
-                            <label for="salary_gross_salary" class="form-label">Gross Salary</label>
-
-                            <input type="number" id="salary_gross_salary" class="form-control" value="0.00" readonly>
-
-                        </div>
-
-                        <div class="col-md-6">
-
-                            <label for="salary_net_salary" class="form-label">Net Salary</label>
-
-                            <input type="number" id="salary_net_salary" class="form-control" value="0.00" readonly>
-
-                        </div>
 
                     </div>
 
-                    <small class="text-muted d-block mt-3">Gross salary is calculated as basic + HRA + allowances; net salary is gross minus deductions.</small>
+                    <small class="text-muted d-block mt-3">
+                        Gross total = total salary + bonus + employer EPF/ESI shares. Net salary = gross total minus employer shares and employee deductions.
+                    </small>
 
                 </div>
 
@@ -544,14 +556,20 @@
 <table class="table table-bordered table-hover align-middle">
     <tbody>
         @foreach([
-            'id' => 'Salary ID',
-            'employee_id' => 'Employee ID',
+            
             'employee' => 'Employee',
-            'basic_salary' => 'Basic Salary',
-            'hra' => 'HRA',
-            'allowances' => 'Allowances',
+            'contract_number' => 'Contract Number',
+            'contract_name' => 'Contract Name',
+            'daily_wage' => 'Daily Wages',
+            'working_days' => 'Working Days',
+            'total_salary' => 'Total Salary',
+            'bonus_amount' => 'Bonus Amount',
+            'epf_employee_contribution' => 'EPF Employee Share',
+            'epf_employer_contribution' => 'EPF Employer Share',
+            'esi_employee_contribution' => 'ESI Employee Share',
+            'esi_employer_contribution' => 'ESI Employer Share',
+            'gross_salary' => 'Gross Total',
             'deductions' => 'Deductions',
-            'gross_salary' => 'Gross Salary',
             'net_salary' => 'Net Salary',
             'created_at' => 'Created At',
             'updated_at' => 'Updated At',
@@ -618,7 +636,43 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveButton = document.getElementById('saveSalaryBtn');
     const formAlert = document.getElementById('salaryFormAlert');
     const employeeSelect = document.getElementById('salary_employee_id');
+    const complianceSettings = @json($complianceSettings);
+    const workingDaysInput = document.getElementById('salary_working_days');
+    const bonusInput = document.getElementById('salary_bonus_amount');
     let deleteId = null;
+    const exportButton = document.getElementById('exportSalaryExcelBtn');
+    const selectAllSalaryRows = document.getElementById('selectAllSalaryRows');
+    const salaryExportCheckboxes = Array.from(document.querySelectorAll('.salary-export-checkbox'));
+
+    function updateSalarySelection() {
+        const selectedCount = salaryExportCheckboxes.filter(checkbox => checkbox.checked).length;
+        selectAllSalaryRows.checked = salaryExportCheckboxes.length > 0 &&
+            selectedCount === salaryExportCheckboxes.length;
+        selectAllSalaryRows.indeterminate = selectedCount > 0 &&
+            selectedCount < salaryExportCheckboxes.length;
+    }
+
+    selectAllSalaryRows?.addEventListener('change', () => {
+        salaryExportCheckboxes.forEach(checkbox => {
+            checkbox.checked = selectAllSalaryRows.checked;
+        });
+    });
+
+    salaryExportCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSalarySelection);
+    });
+
+    exportButton?.addEventListener('click', event => {
+        const selectedIds = salaryExportCheckboxes
+            .filter(checkbox => checkbox.checked)
+            .map(checkbox => checkbox.value);
+        if (selectedIds.length === 0) return;
+
+        event.preventDefault();
+        const url = new URL(exportButton.href);
+        selectedIds.forEach(id => url.searchParams.append('selected_ids[]', id));
+        window.location.href = url.toString();
+    });
 
     function updateEmployeeDetails() {
         const employee = employeeSelect.selectedOptions[0];
@@ -629,15 +683,14 @@ document.addEventListener('DOMContentLoaded', () => {
             '3': 'Highly Skilled'
         };
 
-        document.getElementById('salary_designation').value = employee?.dataset.designation || '';
-        document.getElementById('salary_department').value = employee?.dataset.department || '';
-        document.getElementById('salary_wages_rate_per_day').value =
-            employee?.dataset.wagesRatePerDay || '';
-        document.getElementById('salary_emp_type').value =
+        document.getElementById('salary_daily_wage').value = employee?.dataset.dailyWage || '';
+        document.getElementById('salary_employee_category').value =
             employeeTypes[employee?.dataset.empType] || '';
+        document.getElementById('salary_designation').value = employee?.dataset.designation || '';
+        document.getElementById('salary_work_location').value = employee?.dataset.workLocation || '';
+        document.getElementById('salary_contract_number').value = employee?.dataset.contractNumber || '';
+        document.getElementById('salary_contract_name').value = employee?.dataset.contractName || '';
     }
-
-    employeeSelect.addEventListener('change', updateEmployeeDetails);
 
     function clearErrors() {
         form.querySelectorAll('.is-invalid').forEach(field => field.classList.remove('is-invalid'));
@@ -647,15 +700,51 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function recalculate() {
-        const value = name => Number(form.elements[name]?.value || 0);
-        const gross = value('basic_salary') + value('hra') + value('allowances');
-        const grossField = document.getElementById('salary_gross_salary');
-        const netField = document.getElementById('salary_net_salary');
-        if (grossField) grossField.value = gross.toFixed(2);
-        if (netField) netField.value = (gross - value('deductions')).toFixed(2);
+        const workingDays = Number(workingDaysInput.value || 0);
+        const dailyWage = Number(employeeSelect.selectedOptions[0]?.dataset.dailyWage || 0);
+        const totalSalary = Math.round(
+            workingDays * dailyWage * 100
+        ) / 100;
+        const epfThreshold = complianceSettings?.epf_eligibility_amount;
+        const bonusThreshold = complianceSettings?.bonus_eligibility_amount;
+        const epfEligible = epfThreshold !== null && epfThreshold !== undefined &&
+            totalSalary >= Number(epfThreshold);
+        const bonusEligible = bonusThreshold !== null && bonusThreshold !== undefined &&
+            totalSalary > Number(bonusThreshold);
+        const epfEmployee = epfEligible
+            ? totalSalary * Number(complianceSettings?.epf_employee_percentage || 0) / 100 : 0;
+        const epfEmployer = epfEligible
+            ? totalSalary * Number(complianceSettings?.epf_employer_percentage || 0) / 100 : 0;
+        const esiEmployee = totalSalary * Number(complianceSettings?.esi_employee_percentage || 0) / 100;
+        const esiEmployer = totalSalary * Number(complianceSettings?.esi_employer_percentage || 0) / 100;
+        document.getElementById('salary_total_salary').value = totalSalary.toFixed(2);
+        document.getElementById('complianceEligibilityStatus').textContent =
+            `EPF: ${epfEligible ? 'Eligible' : 'Not eligible'}; Bonus: ${bonusEligible ? 'Eligible' : 'Not eligible'}.`;
+        bonusInput.disabled = !bonusEligible;
+        if (!bonusEligible) bonusInput.value = '0';
+        const bonus = Number(bonusInput.value || 0);
+        const deductions = epfEmployee + esiEmployee;
+        const gross = totalSalary + bonus + epfEmployer + esiEmployer;
+        const net = gross - epfEmployer - esiEmployer - deductions;
+        [
+            ['epf_employee_contribution', epfEmployee],
+            ['epf_employer_contribution', epfEmployer],
+            ['esi_employee_contribution', esiEmployee],
+            ['esi_employer_contribution', esiEmployer],
+            ['gross_salary', gross],
+            ['deductions', deductions],
+            ['net_salary', net],
+        ].forEach(([field, amount]) => {
+            document.getElementById(`salary_${field}`).value = Number(amount).toFixed(2);
+        });
     }
 
-    form.querySelectorAll('.amount-input').forEach(input => input.addEventListener('input', recalculate));
+    bonusInput.addEventListener('input', recalculate);
+    workingDaysInput.addEventListener('input', recalculate);
+    employeeSelect.addEventListener('change', () => {
+        updateEmployeeDetails();
+        recalculate();
+    });
 
     document.getElementById('addSalaryBtn')?.addEventListener('click', () => {
         form.reset();
@@ -679,14 +768,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 const salary = JSON.parse(decodeURIComponent(raw));
                 const employeeName = [salary.first_name, salary.last_name].filter(Boolean).join(' ');
                 const values = {
-                    id: salary.id ?? '—',
-                    employee_id: salary.employee_id ?? '—',
+                    //id: salary.id ?? '—',
+                    //employee_id: salary.employee_id ?? '—',
                     employee: `${salary.employee_code || ''}${salary.employee_code ? ' — ' : ''}${employeeName}`.trim() || '—',
-                    basic_salary: Number(salary.basic_salary || 0).toFixed(2),
-                    hra: Number(salary.hra || 0).toFixed(2),
-                    allowances: Number(salary.allowances || 0).toFixed(2),
-                    deductions: Number(salary.deductions || 0).toFixed(2),
+                    contract_number: salary.contract_number || '—',
+                    contract_name: salary.contract_name || '—',
+                    daily_wage: salary.daily_wage !== null && salary.daily_wage !== undefined
+                        ? Number(salary.daily_wage).toFixed(2) : '—',
+                    working_days: Number(salary.working_days || 0).toFixed(2),
+                    total_salary: Number(salary.total_salary || 0).toFixed(2),
+                    bonus_amount: Number(salary.bonus_amount || 0).toFixed(2),
+                    epf_employee_contribution: Number(salary.epf_employee_contribution || 0).toFixed(2),
+                    epf_employer_contribution: Number(salary.epf_employer_contribution || 0).toFixed(2),
+                    esi_employee_contribution: Number(salary.esi_employee_contribution || 0).toFixed(2),
+                    esi_employer_contribution: Number(salary.esi_employer_contribution || 0).toFixed(2),
                     gross_salary: Number(salary.gross_salary || 0).toFixed(2),
+                    deductions: Number(salary.deductions || 0).toFixed(2),
                     net_salary: Number(salary.net_salary || 0).toFixed(2),
                     created_at: salary.created_at || '—',
                     updated_at: salary.updated_at || '—'
@@ -727,6 +824,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
                 updateEmployeeDetails();
+                recalculate();
                 form.action = `${baseUrl}/${salary.id}`;
                 document.getElementById('salaryMethod').value = 'PUT';
                 document.getElementById('salaryModalLabel').textContent = 'Edit Employee Salary';

@@ -53,6 +53,7 @@ class AuthController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
+            'role' => User::ROLE_SUB_ADMIN,
         ]);
 
         // Auth::login($user);

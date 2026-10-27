@@ -13,9 +13,11 @@
             <p class="text-muted mb-0">Manage employee records</p>
         </div>
 
-        <button type="button" class="btn btn-primary" id="addEmployeeBtn">
-            <i class="bi bi-plus-circle"></i> Add Employee
-        </button>
+        @can('records.create')
+            <button type="button" class="btn btn-primary" id="addEmployeeBtn">
+                <i class="bi bi-plus-circle"></i> Add Employee
+            </button>
+        @endcan
     </div>
 
     {{-- Success / Error Messages --}}
@@ -247,7 +249,7 @@
 
                                
 <td class="employee-actions">
-    <!-- Edit Icon -->
+    @can('records.update')
     <button
         type="button"
         class="btn btn-link edit-icon-btn edit-employee-btn"
@@ -256,6 +258,7 @@
         data-employee="{{ rawurlencode(json_encode($employee)) }}">
         <i class="bi bi-pencil-square"></i>
     </button>
+    @endcan
 
     <!-- Three Dots Menu -->
     <div class="dropdown d-inline-block">
@@ -281,7 +284,7 @@
                 </button>
             </li>
 
-            <!-- Delete -->
+            @can('records.delete')
             <li>
                 <button
                     type="button"
@@ -292,6 +295,7 @@
                     Delete
                 </button>
             </li>
+            @endcan
         </ul>
     </div>
 </td>

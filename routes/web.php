@@ -5,6 +5,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeSalaryController;
 use App\Http\Controllers\PageController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\EmployeeComplianceSettingsController;
+use App\Http\Controllers\ContractController;
 
 
 
@@ -37,6 +40,19 @@ Route::middleware('auth')->group(function () {
     //Route::view('/', 'dashboard.index')->name('dashboard');
     Route::view('/dashboard', 'dashboard.index')->name('dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+    Route::get('/employee-compliance-settings', [EmployeeComplianceSettingsController::class, 'index'])
+        ->name('employee-compliance-settings.index');
+    Route::put('/employee-compliance-settings', [EmployeeComplianceSettingsController::class, 'update'])
+        ->middleware('can:manage-compliance-settings')
+        ->name('employee-compliance-settings.update');
+
+    Route::middleware('can:manage-users')->group(function () {
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::post('/users', [UserController::class, 'store'])->name('users.store');
+        Route::patch('/users/{user}/role', [UserController::class, 'updateRole'])
+            ->name('users.role.update');
+    });
 });
 
 
@@ -52,29 +68,48 @@ Route::middleware(['auth'])->group(function () {
         ->name('employees.index');
 
     Route::post('/employees', [EmployeeController::class, 'store'])
+        ->middleware('can:records.create')
         ->name('employees.store');
 
     Route::put('/employees/{id}', [EmployeeController::class, 'update'])
+        ->middleware('can:records.update')
         ->name('employees.update');
 
     Route::delete('/employees/{id}', [EmployeeController::class, 'destroy'])
+        ->middleware('can:records.delete')
         ->name('employees.destroy');
 
     Route::get('/employee-salaries', [EmployeeSalaryController::class, 'index'])
         ->name('employee-salaries.index');
 
+    Route::get('/employee-salaries/export', [EmployeeSalaryController::class, 'export'])
+        ->name('employee-salaries.export');
+
     Route::post('/employee-salaries', [EmployeeSalaryController::class, 'store'])
+        ->middleware('can:records.create')
         ->name('employee-salaries.store');
 
     Route::put('/employee-salaries/{id}', [EmployeeSalaryController::class, 'update'])
+        ->middleware('can:records.update')
         ->name('employee-salaries.update');
 
     Route::delete('/employee-salaries/{id}', [EmployeeSalaryController::class, 'destroy'])
+        ->middleware('can:records.delete')
         ->name('employee-salaries.destroy');
+
+    Route::get('/contracts', [ContractController::class, 'index'])
+        ->name('contracts.index');
+
+    Route::post('/contracts', [ContractController::class, 'store'])
+        ->middleware('can:records.create')
+        ->name('contracts.store');
+
+    Route::put('/contracts/{id}', [ContractController::class, 'update'])
+        ->middleware('can:records.update')
+        ->name('contracts.update');
+
+    Route::delete('/contracts/{id}', [ContractController::class, 'destroy'])
+        ->middleware('can:records.delete')
+        ->name('contracts.destroy');
 });
-
-
-
-
-
 

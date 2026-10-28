@@ -10,6 +10,11 @@ class EmployeeSalaryController extends Controller
 {
     public function index(Request $request)
     {
+        $request->validate([
+            'month' => ['sometimes', 'nullable', 'in:all,1,2,3,4,5,6,7,8,9,10,11,12'],
+            'year' => ['sometimes', 'nullable', 'integer', 'between:1900,2200'],
+        ]);
+
         $salaries = $this->filteredSalaryQuery($request)
             ->paginate(10)
             ->withQueryString();
@@ -41,12 +46,23 @@ class EmployeeSalaryController extends Controller
             return $salary;
         });
         $complianceSettings = DB::table('employee_compliance_settings')->where('id', 1)->first();
+        $selectedMonth = $request->input('month') ?: 'all';
+        $salaryYears = collect(range(now()->year + 1, now()->year - 10))
+            ->merge(DB::table('employee_salaries')
+                ->whereNotNull('effective_from')
+                ->pluck('effective_from')
+                ->map(fn ($date): int => (int) date('Y', strtotime($date))))
+            ->unique()
+            ->sortDesc()
+            ->values();
 
         return view('employee-salaries.index', compact(
             'salaries',
             'employees',
             'contractsByEmployee',
-            'complianceSettings'
+            'complianceSettings',
+            'salaryYears',
+            'selectedMonth'
         ));
     }
 
@@ -55,6 +71,8 @@ class EmployeeSalaryController extends Controller
         $validated = $request->validate([
             'selected_ids' => ['sometimes', 'array'],
             'selected_ids.*' => ['integer', 'distinct', 'exists:employee_salaries,id'],
+            'month' => ['sometimes', 'nullable', 'in:all,1,2,3,4,5,6,7,8,9,10,11,12'],
+            'year' => ['sometimes', 'nullable', 'integer', 'between:1900,2200'],
         ]);
 
         $query = $this->filteredSalaryQuery($request);
@@ -70,6 +88,16 @@ class EmployeeSalaryController extends Controller
             return [
                 $salary->id,
                 trim($salary->employee_code . ' — ' . $salary->first_name . ' ' . ($salary->last_name ?? '')),
+                $salary->effective_from ? date('F', strtotime($salary->effective_from)) : '-',
+                $salary->effective_from ? (int) date('Y', strtotime($salary->effective_from)) : '-',
+                $salary->designation ?? '-',
+                match ($salary->emp_type === null ? null : (int) $salary->emp_type) {
+                    0 => 'Unskilled',
+                    1 => 'Skilled',
+                    2 => 'Semi-Skilled',
+                    3 => 'Highly Skilled',
+                    default => '-',
+                },
                 $contract->contract_number ?? '-',
                 $contract->title ?? '-',
                 $salary->daily_wage === null ? '-' : (float) $salary->daily_wage,
@@ -87,7 +115,7 @@ class EmployeeSalaryController extends Controller
         })->all();
 
         $headings = [
-            'ID', 'Employee', 'Contract Number', 'Contract Name', 'Daily Wages',
+            'ID', 'Employee', 'Salary Month', 'Salary Year', 'Designation', 'Employee Category', 'Contract Number', 'Contract Name', 'Daily Wages',
             'Working Days', 'Total Salary', 'Bonus', 'EPF Employee',
             'EPF Employer', 'ESI Employee', 'ESI Employer', 'Gross Total',
             'Deductions', 'Net Salary',
@@ -143,6 +171,8 @@ class EmployeeSalaryController extends Controller
             'employee_id' => ['required', 'integer', 'exists:employees,id'],
             'working_days' => ['required', 'numeric', 'min:0', 'max:31', 'decimal:0,2'],
             'bonus_amount' => ['nullable', 'numeric', 'min:0', 'decimal:0,2'],
+            'salary_month' => ['required', 'integer', 'between:1,12'],
+            'salary_year' => ['required', 'integer', 'between:1900,2200'],
         ]);
 
         $employee = DB::table('employees')
@@ -157,6 +187,9 @@ class EmployeeSalaryController extends Controller
         $epfEligible = $settings
             && $settings->epf_eligibility_amount !== null
             && $totalSalary >= (float) $settings->epf_eligibility_amount;
+        $esiEligible = $settings
+            && $settings->esi_eligibility_amount !== null
+            && $totalSalary <= (float) $settings->esi_eligibility_amount;
         $bonusEligible = $settings
             && $settings->bonus_eligibility_amount !== null
             && $totalSalary > (float) $settings->bonus_eligibility_amount;
@@ -169,13 +202,17 @@ class EmployeeSalaryController extends Controller
         }
 
         $epfEmployee = $epfEligible
-            ? round($totalSalary * (float) ($settings->epf_employee_percentage ?? 0) / 100, 2)
+            ? round((float) $settings->epf_eligibility_amount * (float) ($settings->epf_employee_percentage ?? 0) / 100)
             : 0;
         $epfEmployer = $epfEligible
-            ? round($totalSalary * (float) ($settings->epf_employer_percentage ?? 0) / 100, 2)
+            ? round((float) $settings->epf_eligibility_amount * (float) ($settings->epf_employer_percentage ?? 0) / 100)
             : 0;
-        $esiEmployee = round($totalSalary * (float) ($settings->esi_employee_percentage ?? 0) / 100, 2);
-        $esiEmployer = round($totalSalary * (float) ($settings->esi_employer_percentage ?? 0) / 100, 2);
+        $esiEmployee = $esiEligible
+            ? round($totalSalary * (float) ($settings->esi_employee_percentage ?? 0) / 100)
+            : 0;
+        $esiEmployer = $esiEligible
+            ? round($totalSalary * (float) ($settings->esi_employer_percentage ?? 0) / 100)
+            : 0;
         $deductions = round($epfEmployee + $esiEmployee, 2);
         $gross = round($totalSalary + $bonus + $epfEmployer + $esiEmployer, 2);
         $net = round($gross - $epfEmployer - $esiEmployer - $deductions, 2);
@@ -196,7 +233,7 @@ class EmployeeSalaryController extends Controller
             'esi_employer_contribution' => $esiEmployer,
             'gross_salary' => $gross,
             'net_salary' => $net,
-            'effective_from' => $existingSalary->effective_from ?? now()->toDateString(),
+            'effective_from' => sprintf('%04d-%02d-01', $validated['salary_year'], $validated['salary_month']),
             'effective_to' => $existingSalary->effective_to ?? null,
         ];
     }
@@ -210,11 +247,26 @@ class EmployeeSalaryController extends Controller
                 'e.employee_code',
                 'e.first_name',
                 'e.last_name',
+                'e.designation',
+                'e.emp_type',
                 'e.wages_rate_per_day as daily_wage'
             );
 
         if ($request->filled('employee_id')) {
             $query->where('s.employee_id', $request->input('employee_id'));
+        }
+
+        $month = $request->input('month');
+        if ($month && $month !== 'all') {
+            $query->whereMonth('s.effective_from', (int) $month);
+        }
+
+        if ($request->has('year')) {
+            if ($request->filled('year')) {
+                $query->whereYear('s.effective_from', (int) $request->input('year'));
+            }
+        } else {
+            $query->whereYear('s.effective_from', now()->year);
         }
 
         foreach (['total_salary', 'bonus_amount', 'deductions', 'gross_salary', 'net_salary'] as $field) {

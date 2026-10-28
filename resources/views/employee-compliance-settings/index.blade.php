@@ -30,6 +30,7 @@
                         'epf_employer_percentage' => 'EPF Employer Share (%)',
                         'esi_employee_percentage' => 'ESI Employee Share (%)',
                         'esi_employer_percentage' => 'ESI Employer Share (%)',
+                        'esi_eligibility_amount' => 'ESI Eligibility Amount',
                         'epf_eligibility_amount' => 'EPF Eligibility Amount',
                         'bonus_eligibility_amount' => 'Bonus Eligibility Amount',
                     ] as $field => $label)
@@ -52,8 +53,9 @@
                     <div class="col-12">
                         <p class="small text-muted mb-2">
                             Eligibility salary is calculated as the employee's daily wage rate multiplied by working days entered on their salary record.
-                            EPF applies when this amount is greater than or equal to its threshold; bonus applies only when it is greater than its threshold.
-                            Both contribution shares are calculated from this amount. ESI shares are calculated for every salary record.
+                            EPF applies when this amount is greater than or equal to its threshold. Both employee and employer EPF shares are calculated from the EPF eligibility amount and rounded to whole units.
+                            ESI applies when eligibility salary is at or below its configured limit. Employee and employer shares use the actual eligibility salary and configured percentages, rounded to whole units.
+                            Bonus applies only when eligibility salary is greater than its threshold.
                         </p>
                         <button class="btn btn-primary" type="submit">Save Settings</button>
                     </div>
@@ -65,6 +67,7 @@
                         'epf_employer_percentage' => 'EPF Employer Share (%)',
                         'esi_employee_percentage' => 'ESI Employee Share (%)',
                         'esi_employer_percentage' => 'ESI Employer Share (%)',
+                        'esi_eligibility_amount' => 'ESI Eligibility Amount',
                         'epf_eligibility_amount' => 'EPF Eligibility Amount',
                         'bonus_eligibility_amount' => 'Bonus Eligibility Amount',
                     ] as $field => $label)
@@ -73,7 +76,7 @@
                     @endforeach
                 </dl>
                 <p class="small text-muted mb-0">
-                    Eligibility salary is daily wage rate multiplied by working days. EPF requires salary greater than or equal to its threshold; bonus requires salary greater than its threshold.
+                    Eligibility salary is daily wage rate multiplied by working days. EPF requires salary greater than or equal to its threshold; ESI applies at or below its configured limit and uses the actual eligibility salary; bonus requires salary greater than its threshold.
                 </p>
             @endcan
         </div>

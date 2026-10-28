@@ -23,6 +23,7 @@ class EmployeeComplianceSettingsController extends Controller
             'epf_employer_percentage' => ['required', 'numeric', 'min:0', 'max:100', 'decimal:0,2'],
             'esi_employee_percentage' => ['required', 'numeric', 'min:0', 'max:100', 'decimal:0,2'],
             'esi_employer_percentage' => ['required', 'numeric', 'min:0', 'max:100', 'decimal:0,2'],
+            'esi_eligibility_amount' => ['required', 'numeric', 'min:0', 'decimal:0,2'],
             'epf_eligibility_amount' => ['required', 'numeric', 'min:0', 'decimal:0,2'],
             'bonus_eligibility_amount' => ['required', 'numeric', 'min:0', 'decimal:0,2'],
         ]);

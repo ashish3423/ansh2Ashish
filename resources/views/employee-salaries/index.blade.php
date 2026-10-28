@@ -100,8 +100,31 @@
     </select>
 </div>
 
+<div class="col-sm-6 col-lg-3">
+    <label for="filter_month" class="form-label">Month</label>
+    <select name="month" id="filter_month" class="form-select">
+        <option value="all" {{ $selectedMonth === 'all' ? 'selected' : '' }}>All Months</option>
+        @foreach(range(1, 12) as $month)
+            <option value="{{ $month }}"
+                {{ (string) $selectedMonth === (string) $month ? 'selected' : '' }}>
+                {{ \Carbon\Carbon::create(2000, $month, 1)->format('F') }}
+            </option>
+        @endforeach
+    </select>
+</div>
 
-
+<div class="col-sm-6 col-lg-3">
+    <label for="filter_year" class="form-label">Year</label>
+    <select name="year" id="filter_year" class="form-select">
+        <option value="" {{ request()->has('year') && request('year') === '' ? 'selected' : '' }}>All Years</option>
+        @foreach($salaryYears as $year)
+            <option value="{{ $year }}"
+                {{ (string) request('year', now()->year) === (string) $year ? 'selected' : '' }}>
+                {{ $year }}
+            </option>
+        @endforeach
+    </select>
+</div>
 
 
 
@@ -159,7 +182,7 @@
                                 <input type="checkbox" class="form-check-input" id="selectAllSalaryRows"
                                        aria-label="Select all salary rows on this page">
                             </th>
-                            <th>ID</th><th>Employee</th><th>Contract Number</th><th>Contract Name</th>
+                            <th>ID</th><th>Employee</th><th>Salary Period</th><th>Contract Number</th><th>Contract Name</th>
                             <th>Daily Wages</th><th>Working Days</th><th>Total Salary</th>
                             <th>Bonus</th><th>EPF Employee</th><th>EPF Employer</th>
                             <th>ESI Employee</th><th>ESI Employer</th><th>Gross Total</th>
@@ -183,6 +206,7 @@
                                 <td>{{ $salary->id }}</td>
 
                                 <td>{{ $salary->employee_code }} — {{ $salary->first_name }} {{ $salary->last_name }}</td>
+                                <td>{{ $salary->effective_from ? \Carbon\Carbon::parse($salary->effective_from)->format('F Y') : '-' }}</td>
                                 <td>{{ $salary->contract_number ?: '-' }}</td>
                                 <td>{{ $salary->contract_name ?: '-' }}</td>
                                 <td>{{ $salary->daily_wage !== null ? number_format((float) $salary->daily_wage, 2) : '-' }}</td>
@@ -404,6 +428,30 @@
                         </div>
 
                         <div class="col-md-6">
+                            <label for="salary_month" class="form-label">Month <span class="text-danger">*</span></label>
+                            <select name="salary_month" id="salary_month" class="form-select" required>
+                                @foreach(range(1, 12) as $month)
+                                    <option value="{{ $month }}" {{ now()->month === $month ? 'selected' : '' }}>
+                                        {{ \Carbon\Carbon::create(2000, $month, 1)->format('F') }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="salary_year" class="form-label">Year <span class="text-danger">*</span></label>
+                            <select name="salary_year" id="salary_year" class="form-select" required>
+                                @foreach($salaryYears as $year)
+                                    <option value="{{ $year }}" {{ now()->year === $year ? 'selected' : '' }}>
+                                        {{ $year }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="col-md-6">
                             <label for="salary_contract_number" class="form-label">Contract Number</label>
                             <input type="text" id="salary_contract_number" class="form-control" readonly>
                         </div>
@@ -440,6 +488,10 @@
                             <div class="invalid-feedback"></div>
                         </div>
 
+                        <div class="col-12">
+                            <hr class="my-2">
+                        </div>
+
                         <div class="col-md-6">
                             <label for="salary_total_salary" class="form-label">Total Salary (Days × Daily Wage)</label>
                             <input type="number" id="salary_total_salary" class="form-control" value="0.00" readonly>
@@ -451,12 +503,6 @@
                                    class="form-control" min="0" step="0.01" value="0">
                             <div class="form-text">Enabled only when total salary exceeds the bonus eligibility amount.</div>
                             <div class="invalid-feedback"></div>
-                        </div>
-
-                        <div class="col-12">
-                            <div class="alert alert-info py-2 mb-0" id="complianceEligibilityStatus">
-                                Select an employee and enter working days to calculate eligibility and contributions.
-                            </div>
                         </div>
 
                         @foreach([
@@ -479,6 +525,10 @@
                     <small class="text-muted d-block mt-3">
                         Gross total = total salary + bonus + employer EPF/ESI shares. Net salary = gross total minus employer shares and employee deductions.
                     </small>
+
+                    <div class="alert alert-info py-2 mt-3 mb-0" id="complianceEligibilityStatus">
+                        Select an employee and enter working days to calculate eligibility and contributions.
+                    </div>
 
                 </div>
 
@@ -706,20 +756,25 @@ document.addEventListener('DOMContentLoaded', () => {
             workingDays * dailyWage * 100
         ) / 100;
         const epfThreshold = complianceSettings?.epf_eligibility_amount;
+        const esiThreshold = complianceSettings?.esi_eligibility_amount;
         const bonusThreshold = complianceSettings?.bonus_eligibility_amount;
         const epfEligible = epfThreshold !== null && epfThreshold !== undefined &&
             totalSalary >= Number(epfThreshold);
+        const esiEligible = esiThreshold !== null && esiThreshold !== undefined &&
+            totalSalary <= Number(esiThreshold);
         const bonusEligible = bonusThreshold !== null && bonusThreshold !== undefined &&
             totalSalary > Number(bonusThreshold);
         const epfEmployee = epfEligible
-            ? totalSalary * Number(complianceSettings?.epf_employee_percentage || 0) / 100 : 0;
+            ? Math.round(Number(epfThreshold) * Number(complianceSettings?.epf_employee_percentage || 0) / 100) : 0;
         const epfEmployer = epfEligible
-            ? totalSalary * Number(complianceSettings?.epf_employer_percentage || 0) / 100 : 0;
-        const esiEmployee = totalSalary * Number(complianceSettings?.esi_employee_percentage || 0) / 100;
-        const esiEmployer = totalSalary * Number(complianceSettings?.esi_employer_percentage || 0) / 100;
+            ? Math.round(Number(epfThreshold) * Number(complianceSettings?.epf_employer_percentage || 0) / 100) : 0;
+        const esiEmployee = esiEligible
+            ? Math.round(totalSalary * Number(complianceSettings?.esi_employee_percentage || 0) / 100) : 0;
+        const esiEmployer = esiEligible
+            ? Math.round(totalSalary * Number(complianceSettings?.esi_employer_percentage || 0) / 100) : 0;
         document.getElementById('salary_total_salary').value = totalSalary.toFixed(2);
         document.getElementById('complianceEligibilityStatus').textContent =
-            `EPF: ${epfEligible ? 'Eligible' : 'Not eligible'}; Bonus: ${bonusEligible ? 'Eligible' : 'Not eligible'}.`;
+            `EPF: ${epfEligible ? 'Eligible' : 'Not eligible'}; ESI: ${esiEligible ? 'Eligible' : 'Not eligible'}; Bonus: ${bonusEligible ? 'Eligible' : 'Not eligible'}.`;
         bonusInput.disabled = !bonusEligible;
         if (!bonusEligible) bonusInput.value = '0';
         const bonus = Number(bonusInput.value || 0);
@@ -823,6 +878,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         field.value = value;
                     }
                 });
+                if (salary.effective_from) {
+                    const [year, month] = salary.effective_from.split('-');
+                    form.elements.namedItem('salary_month').value = Number(month);
+                    form.elements.namedItem('salary_year').value = Number(year);
+                }
                 updateEmployeeDetails();
                 recalculate();
                 form.action = `${baseUrl}/${salary.id}`;

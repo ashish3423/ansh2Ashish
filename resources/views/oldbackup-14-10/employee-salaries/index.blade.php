@@ -272,7 +272,7 @@ if (view) {
         basic_salary: Number(salary.basic_salary || 0).toFixed(2),
         hra: Number(salary.hra || 0).toFixed(2),
         allowances: Number(salary.allowances || 0).toFixed(2),
-        deductions: Number(salary.deductions || 0).toFixed(2),
+        deductions: Number(salary.deductions || 0).toFixed(3),
         gross_salary: Number(salary.gross_salary || 0).toFixed(2),
         net_salary: Number(salary.net_salary || 0).toFixed(2),
         effective_from: salary.effective_from || '—',
@@ -347,7 +347,7 @@ if (view) {
             formAlert.classList.remove('d-none');
         } finally {
             saveButton.disabled = false;
-            saveButton.textContent = document.getElementById('salaryMethod').value === 'PUT' ? 'Update Salary' : 'Save Salary';
+            saveButton.textContent = document.getElementById('salaryMethod').value === 'PUT' ? 'Update Salary Now' : 'Save Salary Now';
         }
     });
 

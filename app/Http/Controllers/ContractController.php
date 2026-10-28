@@ -11,7 +11,7 @@ class ContractController extends Controller
     public function index(Request $request)
     {
         $query = DB::table('contracts as c')
-            ->join('employees as e', 'e.id', '=', 'c.employee_id')
+            ->leftJoin('employees as e', 'e.id', '=', 'c.employee_id')
             ->select('c.*', 'e.employee_code', 'e.first_name', 'e.last_name');
 
         if ($request->filled('search')) {
@@ -21,7 +21,10 @@ class ContractController extends Controller
                     ->orWhere('c.title', 'like', "%{$search}%")
                     ->orWhere('e.employee_code', 'like', "%{$search}%")
                     ->orWhere('e.first_name', 'like', "%{$search}%")
-                    ->orWhere('e.last_name', 'like', "%{$search}%");
+                    ->orWhere('e.last_name', 'like', "%{$search}%")
+                    ->orWhere('c.department', 'like', "%{$search}%")
+                    ->orWhere('c.organization', 'like', "%{$search}%")
+                    ->orWhere('c.contract_type', 'like', "%{$search}%");
             });
         }
 
@@ -30,12 +33,7 @@ class ContractController extends Controller
         }
 
         $contracts = $query->orderByDesc('c.id')->paginate(10)->withQueryString();
-        $employees = DB::table('employees')
-            ->select('id', 'employee_code', 'first_name', 'last_name')
-            ->orderBy('employee_code')
-            ->get();
-
-        return view('contracts.index', compact('contracts', 'employees'));
+        return view('contracts.index', compact('contracts'));
     }
 
     public function store(Request $request)
@@ -84,8 +82,12 @@ class ContractController extends Controller
                 'max:50',
                 Rule::unique('contracts', 'contract_number')->ignore($contractId),
             ],
-            'employee_id' => ['required', 'integer', 'exists:employees,id'],
+            'employee_id' => ['nullable', 'integer', 'exists:employees,id'],
             'title' => ['required', 'string', 'max:150'],
+            'department' => ['nullable', 'string', 'max:100'],
+            'organization' => ['nullable', 'string', 'max:150'],
+            'address' => ['nullable', 'string', 'max:5000'],
+            'contract_type' => ['required', Rule::in(['Manpower', 'Ambulance', 'Cabs'])],
             'start_date' => ['required', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'amount' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99'],

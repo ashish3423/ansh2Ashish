@@ -8,7 +8,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
             <h4 class="mb-1">Contracts</h4>
-            <p class="text-muted mb-0">Manage employee contracts</p>
+            <p class="text-muted mb-0">Manage contracts</p>
         </div>
         @can('records.create')
             <button type="button" class="btn btn-primary" id="addContractBtn">
@@ -26,7 +26,7 @@
                     <div class="col-md-5">
                         <label for="search" class="form-label">Search contracts</label>
                         <input type="search" name="search" id="search" class="form-control"
-                               placeholder="Contract number, title, or employee"
+                               placeholder="Contract number, title, department, organization, or type"
                                value="{{ request('search') }}">
                     </div>
                     <div class="col-md-3">
@@ -57,6 +57,9 @@
                             <th>#</th>
                             <th>Contract Number</th>
                             <th>Title</th>
+                            <th>Type</th>
+                            <th>Organization</th>
+                            <th>Department</th>
                             <th>Employee</th>
                             <th>Start Date</th>
                             <th>End Date</th>
@@ -71,7 +74,16 @@
                                 <td>{{ $contracts->firstItem() + $loop->index }}</td>
                                 <td>{{ $contract->contract_number }}</td>
                                 <td>{{ $contract->title }}</td>
-                                <td>{{ $contract->employee_code }} — {{ $contract->first_name }} {{ $contract->last_name }}</td>
+                                <td>{{ $contract->contract_type ?: '-' }}</td>
+                                <td>{{ $contract->organization ?: '-' }}</td>
+                                <td>{{ $contract->department ?: '-' }}</td>
+                                <td>
+                                    @if ($contract->employee_id)
+                                        {{ $contract->employee_code }} — {{ $contract->first_name }} {{ $contract->last_name }}
+                                    @else
+                                        -
+                                    @endif
+                                </td>
                                 <td>{{ \Carbon\Carbon::parse($contract->start_date)->format('d-m-Y') }}</td>
                                 <td>{{ $contract->end_date ? \Carbon\Carbon::parse($contract->end_date)->format('d-m-Y') : '-' }}</td>
                                 <td>{{ $contract->amount !== null ? number_format((float) $contract->amount, 2) : '-' }}</td>
@@ -99,7 +111,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="9" class="text-center py-4">No contracts found.</td></tr>
+                            <tr><td colspan="12" class="text-center py-4">No contracts found.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -128,7 +140,7 @@
                     <h5 class="modal-title" id="contractModalLabel">Add Contract</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body contract-form-body">
                     <div id="contractFormAlert" class="alert alert-danger d-none" role="alert"></div>
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -137,18 +149,33 @@
                             <div class="invalid-feedback"></div>
                         </div>
                         <div class="col-md-6">
-                            <label for="employee_id" class="form-label">Employee <span class="text-danger">*</span></label>
-                            <select name="employee_id" id="employee_id" class="form-select" required>
-                                <option value="">Select employee</option>
-                                @foreach($employees as $employee)
-                                    <option value="{{ $employee->id }}">{{ $employee->employee_code }} — {{ $employee->first_name }} {{ $employee->last_name }}</option>
+                            <label for="title" class="form-label">Contract Title <span class="text-danger">*</span></label>
+                            <input name="title" id="title" class="form-control" maxlength="150" required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="contract_type" class="form-label">Contract Type <span class="text-danger">*</span></label>
+                            <select name="contract_type" id="contract_type" class="form-select" required>
+                                <option value="">Select contract type</option>
+                                @foreach(['Manpower', 'Ambulance', 'Cabs'] as $type)
+                                    <option value="{{ $type }}">{{ $type }}</option>
                                 @endforeach
                             </select>
                             <div class="invalid-feedback"></div>
                         </div>
                         <div class="col-md-6">
-                            <label for="title" class="form-label">Contract Title <span class="text-danger">*</span></label>
-                            <input name="title" id="title" class="form-control" maxlength="150" required>
+                            <label for="department" class="form-label">Department</label>
+                            <input name="department" id="department" class="form-control" maxlength="100">
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="organization" class="form-label">Organization</label>
+                            <input name="organization" id="organization" class="form-control" maxlength="150">
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="col-12">
+                            <label for="address" class="form-label">Address</label>
+                            <textarea name="address" id="address" class="form-control" rows="3" maxlength="5000"></textarea>
                             <div class="invalid-feedback"></div>
                         </div>
                         <div class="col-md-6">
@@ -192,6 +219,13 @@
     </div>
 </div>
 @endcanany
+
+<style>
+    #contractModal .contract-form-body {
+        max-height: calc(100vh - 12rem);
+        overflow-y: auto;
+    }
+</style>
 
 @can('records.delete')
 <div class="modal fade" id="deleteContractModal" tabindex="-1" aria-labelledby="deleteContractModalLabel" aria-hidden="true">

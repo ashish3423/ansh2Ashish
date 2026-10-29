@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class EmployeeController extends Controller
 {
@@ -243,6 +244,17 @@ class EmployeeController extends Controller
             'wages_rate_per_day' => 'nullable|numeric|min:0',
         ]);
 
+        if ($validated['status'] === 'inactive'
+            && DB::table('contract_service_assignments')
+                ->where('employee_id', $id)
+                ->orWhere('driver_id', $id)
+                ->orWhere('assistant_id', $id)
+                ->exists()) {
+            throw ValidationException::withMessages([
+                'status' => 'Remove this employee from contract service assignments before marking them inactive.',
+            ]);
+        }
+
         unset($validated['photo']);
 
          $request->merge([
@@ -289,9 +301,15 @@ class EmployeeController extends Controller
             ], 404);
         }
 
-        $deleted = DB::table('employees')
-            ->where('id', $id)
-            ->delete();
+        $deleted = DB::transaction(function () use ($id) {
+            DB::table('contract_service_assignments')
+                ->where('employee_id', $id)
+                ->orWhere('driver_id', $id)
+                ->orWhere('assistant_id', $id)
+                ->delete();
+
+            return DB::table('employees')->where('id', $id)->delete();
+        });
 
         if (!$deleted) {
             return response()->json([

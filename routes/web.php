@@ -8,6 +8,8 @@ use App\Http\Controllers\PageController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\EmployeeComplianceSettingsController;
 use App\Http\Controllers\ContractController;
+use App\Http\Controllers\ContractServiceController;
+use App\Http\Controllers\ServiceVehicleController;
 
 
 
@@ -100,6 +102,39 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/contracts', [ContractController::class, 'index'])
         ->name('contracts.index');
 
+    Route::get('/contracts/check-number', [ContractController::class, 'checkNumber'])
+        ->name('contracts.check-number');
+
+    Route::get('/contracts/{contractId}/services', [ContractServiceController::class, 'edit'])
+        ->name('contracts.services.edit');
+
+    Route::put('/contracts/{contractId}/services', [ContractServiceController::class, 'update'])
+        ->middleware('can:records.update')
+        ->name('contracts.services.update');
+
+    Route::get('/contracts/{contractId}/services/{assignmentId}/move', [ContractServiceController::class, 'editMove'])
+        ->middleware('can:records.update')
+        ->name('contracts.services.move.edit');
+
+    Route::post('/contracts/{contractId}/services/{assignmentId}/move', [ContractServiceController::class, 'move'])
+        ->middleware('can:records.update')
+        ->name('contracts.services.move');
+
+    Route::get('/service-vehicles', [ServiceVehicleController::class, 'index'])
+        ->name('service-vehicles.index');
+
+    Route::post('/service-vehicles', [ServiceVehicleController::class, 'store'])
+        ->middleware('can:records.create')
+        ->name('service-vehicles.store');
+
+    Route::put('/service-vehicles/{id}', [ServiceVehicleController::class, 'update'])
+        ->middleware('can:records.update')
+        ->name('service-vehicles.update');
+
+    Route::delete('/service-vehicles/{id}', [ServiceVehicleController::class, 'destroy'])
+        ->middleware('can:records.delete')
+        ->name('service-vehicles.destroy');
+
     Route::post('/contracts', [ContractController::class, 'store'])
         ->middleware('can:records.create')
         ->name('contracts.store');
@@ -112,4 +147,3 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('can:records.delete')
         ->name('contracts.destroy');
 });
-

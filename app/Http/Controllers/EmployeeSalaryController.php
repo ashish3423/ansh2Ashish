@@ -32,7 +32,7 @@ class EmployeeSalaryController extends Controller
             ->orderBy('employee_code')
             ->get();
         $contractsByEmployee = DB::table('contracts')
-            ->select('employee_id', 'contract_number', 'title', 'status')
+            ->select('employee_id', 'contract_number', 'status')
             ->orderByRaw("CASE WHEN status = 'active' THEN 0 ELSE 1 END")
             ->orderByDesc('id')
             ->get()
@@ -41,7 +41,6 @@ class EmployeeSalaryController extends Controller
         $salaries->getCollection()->transform(function (object $salary) use ($contractsByEmployee) {
             $contract = $contractsByEmployee->get($salary->employee_id);
             $salary->contract_number = $contract->contract_number ?? null;
-            $salary->contract_name = $contract->title ?? null;
 
             return $salary;
         });
@@ -99,7 +98,6 @@ class EmployeeSalaryController extends Controller
                     default => '-',
                 },
                 $contract->contract_number ?? '-',
-                $contract->title ?? '-',
                 $salary->daily_wage === null ? '-' : (float) $salary->daily_wage,
                 (float) $salary->working_days,
                 (float) $salary->total_salary,
@@ -115,7 +113,7 @@ class EmployeeSalaryController extends Controller
         })->all();
 
         $headings = [
-            'ID', 'Employee', 'Salary Month', 'Salary Year', 'Designation', 'Employee Category', 'Contract Number', 'Contract Name', 'Daily Wages',
+            'ID', 'Employee', 'Salary Month', 'Salary Year', 'Designation', 'Employee Category', 'Contract Number', 'Daily Wages',
             'Working Days', 'Total Salary', 'Bonus', 'EPF Employee',
             'EPF Employer', 'ESI Employee', 'ESI Employer', 'Gross Total',
             'Deductions', 'Net Salary',
@@ -281,7 +279,7 @@ class EmployeeSalaryController extends Controller
     private function contractsByEmployee(array $employeeIds): \Illuminate\Support\Collection
     {
         return DB::table('contracts')
-            ->select('employee_id', 'contract_number', 'title', 'status')
+            ->select('employee_id', 'contract_number', 'status')
             ->whereIn('employee_id', $employeeIds)
             ->orderByRaw("CASE WHEN status = 'active' THEN 0 ELSE 1 END")
             ->orderByDesc('id')

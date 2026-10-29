@@ -59,6 +59,8 @@ class SalaryComplianceTest extends TestCase
         });
         $contractMigration = require base_path('database/migrations/2026_10_27_000004_create_contracts_table.php');
         $contractMigration->up();
+        $removeContractTitleMigration = require base_path('database/migrations/2026_10_29_000002_remove_title_from_contracts_table.php');
+        $removeContractTitleMigration->up();
         $salaryMigration = require base_path('database/migrations/2026_10_27_000002_add_compliance_fields_to_employee_salaries_table.php');
         $salaryMigration->up();
         $totalSalaryMigration = require base_path('database/migrations/2026_10_27_000003_add_total_salary_to_employee_salaries_table.php');
@@ -277,7 +279,6 @@ class SalaryComplianceTest extends TestCase
         DB::table('contracts')->insert([
             'employee_id' => 1,
             'contract_number' => 'CON-003',
-            'title' => 'Maintenance Agreement',
             'start_date' => '2026-01-01',
             'status' => 'active',
             'created_at' => now(),
@@ -297,7 +298,6 @@ class SalaryComplianceTest extends TestCase
             ->get(route('employee-salaries.index'))
             ->assertOk()
             ->assertSee('CON-003')
-            ->assertSee('Maintenance Agreement')
             ->assertSee('125.00')
             ->assertSee('Working Days')
             ->assertSee('name="salary_month"', false)
@@ -307,9 +307,7 @@ class SalaryComplianceTest extends TestCase
             ->assertSee('id="filter_year"', false)
             ->assertSee('Daily Wages')
             ->assertSee('Contract Number')
-            ->assertSee('Contract Name')
             ->assertSee('id="view_salary_contract_number"', false)
-            ->assertSee('id="view_salary_contract_name"', false)
             ->assertSee('id="view_salary_daily_wage"', false)
             ->assertSee('Employee Category')
             ->assertSee('Designation')
@@ -322,7 +320,6 @@ class SalaryComplianceTest extends TestCase
             ->assertSee('data-work-location=', false)
             ->assertSee('North Site')
             ->assertSee('data-contract-number="CON-003"', false)
-            ->assertSee('data-contract-name="Maintenance Agreement"', false)
             ->assertSee(route('employee-salaries.export'))
             ->assertSee('Select salary rows to export only those records.')
             ->assertSee('id="selectAllSalaryRows"', false)
@@ -353,7 +350,6 @@ class SalaryComplianceTest extends TestCase
         DB::table('contracts')->insert([
             'employee_id' => $employeeId,
             'contract_number' => 'CON-004',
-            'title' => 'Export Contract',
             'start_date' => '2026-01-01',
             'status' => 'active',
             'created_at' => now(),
@@ -391,7 +387,7 @@ class SalaryComplianceTest extends TestCase
         $this->assertSame(true, $archive->open($excelPath));
         $sheet = $archive->getFromName('xl/worksheets/sheet1.xml');
         $this->assertIsString($sheet);
-        $this->assertStringContainsString('Export Contract', $sheet);
+        $this->assertStringContainsString('CON-004', $sheet);
         $this->assertStringContainsString('Designation', $sheet);
         $this->assertStringContainsString('Employee Category', $sheet);
         $this->assertStringContainsString('Salary Month', $sheet);

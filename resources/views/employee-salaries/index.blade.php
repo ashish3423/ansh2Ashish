@@ -182,7 +182,7 @@
                                 <input type="checkbox" class="form-check-input" id="selectAllSalaryRows"
                                        aria-label="Select all salary rows on this page">
                             </th>
-                            <th>ID</th><th>Employee</th><th>Salary Period</th><th>Contract Number</th><th>Contract Name</th>
+                            <th>ID</th><th>Employee</th><th>Salary Period</th><th>Contract Number</th>
                             <th>Daily Wages</th><th>Working Days</th><th>Total Salary</th>
                             <th>Bonus</th><th>EPF Employee</th><th>EPF Employer</th>
                             <th>ESI Employee</th><th>ESI Employer</th><th>Gross Total</th>
@@ -208,7 +208,6 @@
                                 <td>{{ $salary->employee_code }} — {{ $salary->first_name }} {{ $salary->last_name }}</td>
                                 <td>{{ $salary->effective_from ? \Carbon\Carbon::parse($salary->effective_from)->format('F Y') : '-' }}</td>
                                 <td>{{ $salary->contract_number ?: '-' }}</td>
-                                <td>{{ $salary->contract_name ?: '-' }}</td>
                                 <td>{{ $salary->daily_wage !== null ? number_format((float) $salary->daily_wage, 2) : '-' }}</td>
                                 <td>{{ number_format((float) $salary->working_days, 2) }}</td>
                                 <td>{{ number_format((float) $salary->total_salary, 2) }}</td>
@@ -418,8 +417,7 @@
                                             data-emp-type="{{ $employee->emp_type }}"
                                             data-designation="{{ $employee->designation }}"
                                             data-work-location="{{ $employee->work_location }}"
-                                            data-contract-number="{{ $contractsByEmployee->get($employee->id)->contract_number ?? '' }}"
-                                            data-contract-name="{{ $contractsByEmployee->get($employee->id)->title ?? '' }}">
+                                            data-contract-number="{{ $contractsByEmployee->get($employee->id)->contract_number ?? '' }}">
                                         {{ $employee->employee_code }} — {{ $employee->first_name }} {{ $employee->last_name }}
                                     </option>
                                 @endforeach
@@ -454,11 +452,6 @@
                         <div class="col-md-6">
                             <label for="salary_contract_number" class="form-label">Contract Number</label>
                             <input type="text" id="salary_contract_number" class="form-control" readonly>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label for="salary_contract_name" class="form-label">Contract Name</label>
-                            <input type="text" id="salary_contract_name" class="form-control" readonly>
                         </div>
 
                         <div class="col-md-6">
@@ -609,7 +602,6 @@
             
             'employee' => 'Employee',
             'contract_number' => 'Contract Number',
-            'contract_name' => 'Contract Name',
             'daily_wage' => 'Daily Wages',
             'working_days' => 'Working Days',
             'total_salary' => 'Total Salary',
@@ -739,7 +731,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('salary_designation').value = employee?.dataset.designation || '';
         document.getElementById('salary_work_location').value = employee?.dataset.workLocation || '';
         document.getElementById('salary_contract_number').value = employee?.dataset.contractNumber || '';
-        document.getElementById('salary_contract_name').value = employee?.dataset.contractName || '';
     }
 
     function clearErrors() {
@@ -827,7 +818,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     //employee_id: salary.employee_id ?? '—',
                     employee: `${salary.employee_code || ''}${salary.employee_code ? ' — ' : ''}${employeeName}`.trim() || '—',
                     contract_number: salary.contract_number || '—',
-                    contract_name: salary.contract_name || '—',
                     daily_wage: salary.daily_wage !== null && salary.daily_wage !== undefined
                         ? Number(salary.daily_wage).toFixed(2) : '—',
                     working_days: Number(salary.working_days || 0).toFixed(2),

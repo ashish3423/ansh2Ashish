@@ -63,6 +63,10 @@ class SalaryComplianceTest extends TestCase
         $optionalContractEmployeeMigration->up();
         $removeContractTitleMigration = require base_path('database/migrations/2026_10_29_000002_remove_title_from_contracts_table.php');
         $removeContractTitleMigration->up();
+        $holidayOptionsMigration = require base_path('database/migrations/2026_10_29_000003_add_holiday_options_to_contracts_table.php');
+        $holidayOptionsMigration->up();
+        $contractExtensionMigration = require base_path('database/migrations/2026_10_31_000000_add_extension_date_and_holiday_percentages_to_contracts_table.php');
+        $contractExtensionMigration->up();
         Schema::connection('sqlite')->create('contract_service_assignments', function ($table) {
             $table->id();
             $table->unsignedBigInteger('contract_id');
@@ -102,13 +106,28 @@ class SalaryComplianceTest extends TestCase
         ]);
     }
 
-    public function test_salary_uses_days_times_daily_wage_for_eligibility_and_contributions(): void
+    public function test_salary_includes_contract_holiday_percentages_in_gross_and_net(): void
     {
         $user = User::factory()->create(['role' => User::ROLE_SUPER_ADMIN]);
+        DB::table('employee_compliance_settings')
+            ->where('id', 1)
+            ->update(['bonus_eligibility_amount' => 2001]);
         $employeeId = DB::table('employees')->insertGetId([
             'employee_code' => 'EMP-001',
             'first_name' => 'Eligible',
             'wages_rate_per_day' => 100,
+        ]);
+        DB::table('contracts')->insert([
+            'employee_id' => $employeeId,
+            'contract_number' => 'CON-001',
+            'start_date' => '2026-01-01',
+            'status' => 'active',
+            'paid_holidays' => 1,
+            'paid_holidays_percentage' => 5,
+            'leave_with_wages' => 1,
+            'leave_with_wages_percentage' => 10,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         $this->actingAs($user)
@@ -131,12 +150,30 @@ class SalaryComplianceTest extends TestCase
             'epf_employer_contribution' => 240,
             'esi_employee_contribution' => 20,
             'esi_employer_contribution' => 40,
-            'gross_salary' => 2330,
+            'gross_salary' => 2630,
             'deductions' => 220,
-            'net_salary' => 1830,
+            'net_salary' => 2130,
             'basic_salary' => 0,
             'hra' => 0,
             'allowances' => 0,
+        ]);
+
+        $salaryId = DB::table('employee_salaries')->where('employee_id', $employeeId)->value('id');
+        $this->actingAs($user)
+            ->putJson(route('employee-salaries.update', $salaryId), [
+                'employee_id' => $employeeId,
+                'salary_month' => now()->month,
+                'salary_year' => now()->year,
+                'working_days' => 10,
+                'bonus_amount' => 0,
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('employee_salaries', [
+            'id' => $salaryId,
+            'total_salary' => 1000,
+            'gross_salary' => 1170,
+            'net_salary' => 1140,
         ]);
     }
 
@@ -231,7 +268,7 @@ class SalaryComplianceTest extends TestCase
         ]);
     }
 
-    public function test_bonus_requires_salary_to_be_strictly_greater_than_threshold(): void
+    public function test_bonus_requires_salary_to_be_strictly_less_than_threshold(): void
     {
         $user = User::factory()->create(['role' => User::ROLE_SUPER_ADMIN]);
         $employeeId = DB::table('employees')->insertGetId([
@@ -242,6 +279,15 @@ class SalaryComplianceTest extends TestCase
 
         $this->actingAs($user)
             ->postJson(route('employee-salaries.store'), [
+                'employee_id' => $employeeId,
+                'salary_month' => now()->month,
+                'salary_year' => now()->year,
+                'working_days' => 19.98,
+                'bonus_amount' => 1,
+            ])
+            ->assertOk();
+
+        $this->postJson(route('employee-salaries.store'), [
                 'employee_id' => $employeeId,
                 'salary_month' => now()->month,
                 'salary_year' => now()->year,
@@ -331,6 +377,8 @@ class SalaryComplianceTest extends TestCase
             ->assertSee('data-work-location=', false)
             ->assertSee('North Site')
             ->assertSee('data-contract-number="CON-003"', false)
+            ->assertSee('id="salary_paid_holidays_amount"', false)
+            ->assertSee('id="salary_leave_with_wages_amount"', false)
             ->assertSee(route('employee-salaries.export'))
             ->assertSee('Select salary rows to export only those records.')
             ->assertSee('id="selectAllSalaryRows"', false)

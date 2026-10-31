@@ -54,6 +54,8 @@ class ContractManagementTest extends TestCase
         $removeContractTitleMigration->up();
         $holidayOptionsMigration = require base_path('database/migrations/2026_10_29_000003_add_holiday_options_to_contracts_table.php');
         $holidayOptionsMigration->up();
+        $contractExtensionMigration = require base_path('database/migrations/2026_10_31_000000_add_extension_date_and_holiday_percentages_to_contracts_table.php');
+        $contractExtensionMigration->up();
     }
 
     public function test_super_admin_can_create_update_list_and_delete_contracts(): void
@@ -75,9 +77,12 @@ class ContractManagementTest extends TestCase
             'contract_type' => 'Manpower',
             'start_date' => '2026-01-01',
             'end_date' => '2026-12-31',
+            'extension_date' => '2027-03-31',
             'amount' => '25000.00',
             'paid_holidays' => '1',
+            'paid_holidays_percentage' => '8.50',
             'leave_with_wages' => '1',
+            'leave_with_wages_percentage' => '4.25',
             'status' => 'active',
             'notes' => 'Initial agreement',
         ];
@@ -106,7 +111,10 @@ class ContractManagementTest extends TestCase
             'address' => '1 Example Street',
             'contract_type' => 'Manpower',
             'paid_holidays' => 1,
+            'paid_holidays_percentage' => 8.5,
             'leave_with_wages' => 1,
+            'leave_with_wages_percentage' => 4.25,
+            'extension_date' => '2027-03-31',
         ]);
 
         $this->deleteJson(route('contracts.destroy', $contractId))
@@ -161,6 +169,10 @@ class ContractManagementTest extends TestCase
             ->assertSee('name="leave_with_wages"', false)
             ->assertSee('id="paid_holidays" value="1"', false)
             ->assertSee('id="leave_with_wages" value="1"', false)
+            ->assertSee('name="extension_date"', false)
+            ->assertSee('name="paid_holidays_percentage"', false)
+            ->assertSee('name="leave_with_wages_percentage"', false)
+            ->assertSee('id="extensionDateField"', false)
             ->assertSee('Assigned Services')
             ->assertSee('view-contract-btn')
             ->assertSee('name="department"', false)
@@ -188,6 +200,37 @@ class ContractManagementTest extends TestCase
             'department' => 'Emergency Services',
             'organization' => 'City Health',
             'address' => '2 Health Road',
+        ]);
+    }
+
+    public function test_enabled_holiday_options_require_a_percentage_and_disabled_values_are_cleared(): void
+    {
+        $user = User::factory()->create(['role' => User::ROLE_SUPER_ADMIN]);
+        $this->actingAs($user);
+
+        $contractData = [
+            'contract_number' => 'CON-003',
+            'contract_type' => 'Manpower',
+            'start_date' => '2026-01-01',
+            'status' => 'draft',
+            'paid_holidays' => 1,
+            'leave_with_wages' => 0,
+        ];
+
+        $this->postJson(route('contracts.store'), $contractData)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('paid_holidays_percentage');
+
+        $this->postJson(route('contracts.store'), [
+            ...$contractData,
+            'paid_holidays_percentage' => '5.5',
+            'leave_with_wages_percentage' => '25',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('contracts', [
+            'contract_number' => 'CON-003',
+            'paid_holidays_percentage' => 5.5,
+            'leave_with_wages_percentage' => null,
         ]);
     }
 

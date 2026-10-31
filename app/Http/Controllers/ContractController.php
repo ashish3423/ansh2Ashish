@@ -195,15 +195,24 @@ class ContractController extends Controller
             'contract_type' => ['required', Rule::in(['Manpower', 'Ambulance', 'Cabs'])],
             'start_date' => ['required', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'extension_date' => ['nullable', 'date'],
             'amount' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99'],
             'paid_holidays' => ['sometimes', 'boolean'],
+            'paid_holidays_percentage' => ['nullable', 'required_if:paid_holidays,1', 'numeric', 'min:0', 'max:100'],
             'leave_with_wages' => ['sometimes', 'boolean'],
+            'leave_with_wages_percentage' => ['nullable', 'required_if:leave_with_wages,1', 'numeric', 'min:0', 'max:100'],
             'status' => ['required', Rule::in(['draft', 'active', 'completed', 'terminated'])],
             'notes' => ['nullable', 'string', 'max:5000'],
         ]);
 
         $validated['paid_holidays'] = $request->boolean('paid_holidays');
         $validated['leave_with_wages'] = $request->boolean('leave_with_wages');
+        $validated['paid_holidays_percentage'] = $validated['paid_holidays']
+            ? $validated['paid_holidays_percentage']
+            : null;
+        $validated['leave_with_wages_percentage'] = $validated['leave_with_wages']
+            ? $validated['leave_with_wages_percentage']
+            : null;
 
         return $validated;
     }

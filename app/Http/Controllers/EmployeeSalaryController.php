@@ -176,6 +176,14 @@ class EmployeeSalaryController extends Controller
         $settings = DB::table('employee_compliance_settings')->where('id', 1)->first();
         $workingDays = (float) $validated['working_days'];
         $totalSalary = round($workingDays * (float) ($employee->wages_rate_per_day ?? 0), 2);
+        $contract = $this->contractsByEmployee([(int) $validated['employee_id']])
+            ->get($validated['employee_id']);
+        $paidHolidays = ! empty($contract?->paid_holidays)
+            ? round($totalSalary * (float) ($contract->paid_holidays_percentage ?? 0) / 100, 2)
+            : 0;
+        $leaveWithWages = ! empty($contract?->leave_with_wages)
+            ? round($totalSalary * (float) ($contract->leave_with_wages_percentage ?? 0) / 100, 2)
+            : 0;
         $epfEligible = $settings
             && $settings->epf_eligibility_amount !== null
             && $totalSalary >= (float) $settings->epf_eligibility_amount;
@@ -184,7 +192,7 @@ class EmployeeSalaryController extends Controller
             && $totalSalary <= (float) $settings->esi_eligibility_amount;
         $bonusEligible = $settings
             && $settings->bonus_eligibility_amount !== null
-            && $totalSalary > (float) $settings->bonus_eligibility_amount;
+            && $totalSalary < (float) $settings->bonus_eligibility_amount;
         $bonus = (float) ($validated['bonus_amount'] ?? 0);
 
         if ($bonus > 0 && ! $bonusEligible) {
@@ -206,7 +214,7 @@ class EmployeeSalaryController extends Controller
             ? round($totalSalary * (float) ($settings->esi_employer_percentage ?? 0) / 100)
             : 0;
         $deductions = round($epfEmployee + $esiEmployee, 2);
-        $gross = round($totalSalary + $bonus + $epfEmployer + $esiEmployer, 2);
+        $gross = round($totalSalary + $paidHolidays + $leaveWithWages + $bonus + $epfEmployer + $esiEmployer, 2);
         $net = round($gross - $epfEmployer - $esiEmployer - $deductions, 2);
 
         return [
@@ -274,7 +282,16 @@ class EmployeeSalaryController extends Controller
     {
         $contracts = DB::table('contracts')
             ->whereIn('employee_id', $employeeIds)
-            ->select('employee_id', 'contract_number', 'status', 'id')
+            ->select(
+                'employee_id',
+                'contract_number',
+                'status',
+                'id',
+                'paid_holidays',
+                'paid_holidays_percentage',
+                'leave_with_wages',
+                'leave_with_wages_percentage'
+            )
             ->get();
         $assignedContracts = DB::table('contract_service_assignments as a')
             ->join('contracts as c', 'c.id', '=', 'a.contract_id')
@@ -289,7 +306,11 @@ class EmployeeSalaryController extends Controller
                 'a.assistant_id',
                 'c.contract_number',
                 'c.status',
-                'c.id'
+                'c.id',
+                'c.paid_holidays',
+                'c.paid_holidays_percentage',
+                'c.leave_with_wages',
+                'c.leave_with_wages_percentage'
             )
             ->get()
             ->flatMap(function (object $contract): array {
@@ -304,6 +325,10 @@ class EmployeeSalaryController extends Controller
                         'contract_number' => $contract->contract_number,
                         'status' => $contract->status,
                         'id' => $contract->id,
+                        'paid_holidays' => $contract->paid_holidays,
+                        'paid_holidays_percentage' => $contract->paid_holidays_percentage,
+                        'leave_with_wages' => $contract->leave_with_wages,
+                        'leave_with_wages_percentage' => $contract->leave_with_wages_percentage,
                     ])
                     ->all();
             });

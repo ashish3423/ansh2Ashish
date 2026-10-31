@@ -417,7 +417,11 @@
                                             data-emp-type="{{ $employee->emp_type }}"
                                             data-designation="{{ $employee->designation }}"
                                             data-work-location="{{ $employee->work_location }}"
-                                            data-contract-number="{{ $contractsByEmployee->get($employee->id)->contract_number ?? '' }}">
+                                            data-contract-number="{{ $contractsByEmployee->get($employee->id)->contract_number ?? '' }}"
+                                            data-paid-holidays="{{ $contractsByEmployee->get($employee->id)->paid_holidays ?? 0 }}"
+                                            data-paid-holidays-percentage="{{ $contractsByEmployee->get($employee->id)->paid_holidays_percentage ?? '' }}"
+                                            data-leave-with-wages="{{ $contractsByEmployee->get($employee->id)->leave_with_wages ?? 0 }}"
+                                            data-leave-with-wages-percentage="{{ $contractsByEmployee->get($employee->id)->leave_with_wages_percentage ?? '' }}">
                                         {{ $employee->employee_code }} — {{ $employee->first_name }} {{ $employee->last_name }}
                                     </option>
                                 @endforeach
@@ -490,11 +494,21 @@
                             <input type="number" id="salary_total_salary" class="form-control" value="0.00" readonly>
                         </div>
 
+                        <div class="col-md-6 d-none" id="salaryPaidHolidaysField">
+                            <label for="salary_paid_holidays_amount" class="form-label">PH Amount</label>
+                            <input type="number" id="salary_paid_holidays_amount" class="form-control" value="0.00" readonly>
+                        </div>
+
+                        <div class="col-md-6 d-none" id="salaryLeaveWithWagesField">
+                            <label for="salary_leave_with_wages_amount" class="form-label">LWW Amount</label>
+                            <input type="number" id="salary_leave_with_wages_amount" class="form-control" value="0.00" readonly>
+                        </div>
+
                         <div class="col-md-6">
                             <label for="salary_bonus_amount" class="form-label">Bonus Amount Given</label>
                             <input type="number" name="bonus_amount" id="salary_bonus_amount"
                                    class="form-control" min="0" step="0.01" value="0">
-                            <div class="form-text">Enabled only when total salary exceeds the bonus eligibility amount.</div>
+                            <div class="form-text">Enabled only when total salary is less than the bonus eligibility amount.</div>
                             <div class="invalid-feedback"></div>
                         </div>
 
@@ -746,6 +760,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalSalary = Math.round(
             workingDays * dailyWage * 100
         ) / 100;
+        const selectedEmployee = employeeSelect.selectedOptions[0];
+        const hasPaidHolidays = selectedEmployee?.dataset.paidHolidays === '1';
+        const hasLeaveWithWages = selectedEmployee?.dataset.leaveWithWages === '1';
+        const paidHolidaysPercentage = Number(selectedEmployee?.dataset.paidHolidaysPercentage || 0);
+        const leaveWithWagesPercentage = Number(selectedEmployee?.dataset.leaveWithWagesPercentage || 0);
+        const paidHolidays = hasPaidHolidays
+            ? Math.round(totalSalary * paidHolidaysPercentage) / 100 : 0;
+        const leaveWithWages = hasLeaveWithWages
+            ? Math.round(totalSalary * leaveWithWagesPercentage) / 100 : 0;
         const epfThreshold = complianceSettings?.epf_eligibility_amount;
         const esiThreshold = complianceSettings?.esi_eligibility_amount;
         const bonusThreshold = complianceSettings?.bonus_eligibility_amount;
@@ -754,7 +777,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const esiEligible = esiThreshold !== null && esiThreshold !== undefined &&
             totalSalary <= Number(esiThreshold);
         const bonusEligible = bonusThreshold !== null && bonusThreshold !== undefined &&
-            totalSalary > Number(bonusThreshold);
+            totalSalary < Number(bonusThreshold);
         const epfEmployee = epfEligible
             ? Math.round(Number(epfThreshold) * Number(complianceSettings?.epf_employee_percentage || 0) / 100) : 0;
         const epfEmployer = epfEligible
@@ -764,13 +787,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const esiEmployer = esiEligible
             ? Math.round(totalSalary * Number(complianceSettings?.esi_employer_percentage || 0) / 100) : 0;
         document.getElementById('salary_total_salary').value = totalSalary.toFixed(2);
+        document.getElementById('salary_paid_holidays_amount').value = paidHolidays.toFixed(2);
+        document.getElementById('salary_leave_with_wages_amount').value = leaveWithWages.toFixed(2);
+        document.getElementById('salaryPaidHolidaysField').classList.toggle('d-none', !hasPaidHolidays);
+        document.getElementById('salaryLeaveWithWagesField').classList.toggle('d-none', !hasLeaveWithWages);
         document.getElementById('complianceEligibilityStatus').textContent =
             `EPF: ${epfEligible ? 'Eligible' : 'Not eligible'}; ESI: ${esiEligible ? 'Eligible' : 'Not eligible'}; Bonus: ${bonusEligible ? 'Eligible' : 'Not eligible'}.`;
         bonusInput.disabled = !bonusEligible;
         if (!bonusEligible) bonusInput.value = '0';
         const bonus = Number(bonusInput.value || 0);
         const deductions = epfEmployee + esiEmployee;
-        const gross = totalSalary + bonus + epfEmployer + esiEmployer;
+        const gross = totalSalary + paidHolidays + leaveWithWages + bonus + epfEmployer + esiEmployer;
         const net = gross - epfEmployer - esiEmployer - deductions;
         [
             ['epf_employee_contribution', epfEmployee],

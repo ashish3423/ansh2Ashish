@@ -249,6 +249,11 @@
                             <input type="date" name="end_date" id="end_date" class="form-control">
                             <div class="invalid-feedback"></div>
                         </div>
+                        <div class="col-md-6 d-none" id="extensionDateField">
+                            <label for="extension_date" class="form-label">Extension Date</label>
+                            <input type="date" name="extension_date" id="extension_date" class="form-control">
+                            <div class="invalid-feedback"></div>
+                        </div>
 
                         <div class="col-12">
                             <label for="notes" class="form-label">Notes</label>
@@ -262,6 +267,12 @@
                                        name="paid_holidays" id="paid_holidays" value="1">
                                 <label class="form-check-label" for="paid_holidays">PH (Paid Holidays)</label>
                             </div>
+                            <div class="mt-2 d-none" id="paidHolidaysPercentageField">
+                                <label for="paid_holidays_percentage" class="form-label">PH Percentage</label>
+                                <input type="number" name="paid_holidays_percentage" id="paid_holidays_percentage"
+                                       class="form-control" min="0" max="100" step="0.01">
+                                <div class="invalid-feedback"></div>
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-check form-switch">
@@ -269,6 +280,12 @@
                                 <input class="form-check-input" type="checkbox" role="switch"
                                        name="leave_with_wages" id="leave_with_wages" value="1">
                                 <label class="form-check-label" for="leave_with_wages">LWW (Leave with Wages)</label>
+                            </div>
+                            <div class="mt-2 d-none" id="leaveWithWagesPercentageField">
+                                <label for="leave_with_wages_percentage" class="form-label">LWW Percentage</label>
+                                <input type="number" name="leave_with_wages_percentage" id="leave_with_wages_percentage"
+                                       class="form-control" min="0" max="100" step="0.01">
+                                <div class="invalid-feedback"></div>
                             </div>
                         </div>
 
@@ -371,7 +388,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const dateFields = ['start_date', 'end_date'];
         const booleanFields = ['paid_holidays', 'leave_with_wages'];
 
+        
+
         Object.entries(contract).forEach(([field, value]) => {
+        //alert(value);
             const cell = document.getElementById('view_contract_' + field);
             if (!cell) return;
 
@@ -379,7 +399,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 const [year, month, day] = value.slice(0, 10).split('-');
                 value = `${day}-${month}-${year}`;
             } else if (booleanFields.includes(field)) {
-                value = Number(value) === 1 ? 'Yes' : 'No';
+                const percentage = contract[field + '_percentage'];
+                value = Number(value) === 1
+                    ? 'Yes' + (percentage !== null && percentage !== '' ? ` (${percentage}%)` : '')
+                    : 'No';
             } else if (field === 'amount' && value !== null && value !== '') {
                 value = Number(value).toFixed(2);
             } else if (field === 'status' && value) {
@@ -446,6 +469,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const saveButton = document.getElementById('saveContractBtn');
     const contractNumberField = document.getElementById('contract_number');
     const contractNumberFeedback = document.getElementById('contractNumberFeedback');
+    const extensionDateField = document.getElementById('extensionDateField');
+    const paidHolidays = document.getElementById('paid_holidays');
+    const leaveWithWages = document.getElementById('leave_with_wages');
+    const paidHolidaysPercentageField = document.getElementById('paidHolidaysPercentageField');
+    const leaveWithWagesPercentageField = document.getElementById('leaveWithWagesPercentageField');
     let contractBeingEdited = null;
     let contractNumberCheckSequence = 0;
     let contractNumberCheckTimer = null;
@@ -547,10 +575,20 @@ document.addEventListener('DOMContentLoaded', function () {
         formAlert.classList.remove('d-none');
     }
 
+    function syncConditionalFields() {
+        extensionDateField.classList.toggle('d-none', !contractBeingEdited);
+        paidHolidaysPercentageField.classList.toggle('d-none', !paidHolidays.checked);
+        leaveWithWagesPercentageField.classList.toggle('d-none', !leaveWithWages.checked);
+    }
+
+    paidHolidays.addEventListener('change', syncConditionalFields);
+    leaveWithWages.addEventListener('change', syncConditionalFields);
+
     document.getElementById('addContractBtn')?.addEventListener('click', function () {
         form.reset();
         clearFormErrors();
         contractBeingEdited = null;
+        syncConditionalFields();
         form.action = storeUrl;
         document.getElementById('contractMethod').value = 'POST';
         document.getElementById('contractModalLabel').textContent = 'Add Contract';
@@ -573,6 +611,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const field = form.elements.namedItem(key);
                 if (field) field.value = contract[key] ?? '';
             });
+            syncConditionalFields();
             form.action = contractsUrl + '/' + contract.id;
             document.getElementById('contractMethod').value = 'PUT';
             document.getElementById('contractModalLabel').textContent = 'Edit Contract';

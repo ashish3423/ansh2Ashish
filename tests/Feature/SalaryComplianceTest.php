@@ -59,8 +59,19 @@ class SalaryComplianceTest extends TestCase
         });
         $contractMigration = require base_path('database/migrations/2026_10_27_000004_create_contracts_table.php');
         $contractMigration->up();
+        $optionalContractEmployeeMigration = require base_path('database/migrations/2026_10_28_000001_update_contract_details_and_make_employee_optional.php');
+        $optionalContractEmployeeMigration->up();
         $removeContractTitleMigration = require base_path('database/migrations/2026_10_29_000002_remove_title_from_contracts_table.php');
         $removeContractTitleMigration->up();
+        Schema::connection('sqlite')->create('contract_service_assignments', function ($table) {
+            $table->id();
+            $table->unsignedBigInteger('contract_id');
+            $table->unsignedBigInteger('employee_id')->nullable();
+            $table->unsignedBigInteger('service_vehicle_id')->nullable();
+            $table->unsignedBigInteger('driver_id')->nullable();
+            $table->unsignedBigInteger('assistant_id')->nullable();
+            $table->timestamps();
+        });
         $salaryMigration = require base_path('database/migrations/2026_10_27_000002_add_compliance_fields_to_employee_salaries_table.php');
         $salaryMigration->up();
         $totalSalaryMigration = require base_path('database/migrations/2026_10_27_000003_add_total_salary_to_employee_salaries_table.php');
@@ -334,6 +345,36 @@ class SalaryComplianceTest extends TestCase
         $this->get(route('employee-compliance-settings.index'))
             ->assertOk()
             ->assertSee('ESI Eligibility Amount');
+    }
+
+    public function test_salary_employee_autofill_uses_assigned_contract(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $employeeId = DB::table('employees')->insertGetId([
+            'employee_code' => 'EMP-ASSIGNED',
+            'first_name' => 'Assigned',
+            'last_name' => 'Employee',
+            'wages_rate_per_day' => 150,
+        ]);
+        $contractId = DB::table('contracts')->insertGetId([
+            'employee_id' => null,
+            'contract_number' => 'CON-ASSIGNED',
+            'start_date' => '2026-01-01',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('contract_service_assignments')->insert([
+            'contract_id' => $contractId,
+            'employee_id' => $employeeId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('employee-salaries.index'))
+            ->assertOk()
+            ->assertSee('data-contract-number="CON-ASSIGNED"', false);
     }
 
     public function test_salary_export_downloads_full_filtered_or_selected_excel_rows(): void

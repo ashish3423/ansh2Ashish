@@ -31,13 +31,7 @@ class EmployeeSalaryController extends Controller
             )
             ->orderBy('employee_code')
             ->get();
-        $contractsByEmployee = DB::table('contracts')
-            ->select('employee_id', 'contract_number', 'status')
-            ->orderByRaw("CASE WHEN status = 'active' THEN 0 ELSE 1 END")
-            ->orderByDesc('id')
-            ->get()
-            ->unique('employee_id')
-            ->keyBy('employee_id');
+        $contractsByEmployee = $this->contractsByEmployee($employees->pluck('id')->all());
         $salaries->getCollection()->transform(function (object $salary) use ($contractsByEmployee) {
             $contract = $contractsByEmployee->get($salary->employee_id);
             $salary->contract_number = $contract->contract_number ?? null;
@@ -278,12 +272,48 @@ class EmployeeSalaryController extends Controller
 
     private function contractsByEmployee(array $employeeIds): \Illuminate\Support\Collection
     {
-        return DB::table('contracts')
-            ->select('employee_id', 'contract_number', 'status')
+        $contracts = DB::table('contracts')
             ->whereIn('employee_id', $employeeIds)
-            ->orderByRaw("CASE WHEN status = 'active' THEN 0 ELSE 1 END")
-            ->orderByDesc('id')
+            ->select('employee_id', 'contract_number', 'status', 'id')
+            ->get();
+        $assignedContracts = DB::table('contract_service_assignments as a')
+            ->join('contracts as c', 'c.id', '=', 'a.contract_id')
+            ->where(function ($query) use ($employeeIds): void {
+                foreach (['employee_id', 'driver_id', 'assistant_id'] as $field) {
+                    $query->orWhereIn("a.{$field}", $employeeIds);
+                }
+            })
+            ->select(
+                'a.employee_id',
+                'a.driver_id',
+                'a.assistant_id',
+                'c.contract_number',
+                'c.status',
+                'c.id'
+            )
             ->get()
+            ->flatMap(function (object $contract): array {
+                return collect([
+                    $contract->employee_id,
+                    $contract->driver_id,
+                    $contract->assistant_id,
+                ])
+                    ->filter()
+                    ->map(fn ($employeeId): object => (object) [
+                        'employee_id' => $employeeId,
+                        'contract_number' => $contract->contract_number,
+                        'status' => $contract->status,
+                        'id' => $contract->id,
+                    ])
+                    ->all();
+            });
+
+        return $contracts->concat($assignedContracts)
+            ->sort(function (object $left, object $right): int {
+                $statusOrder = ($left->status !== 'active') <=> ($right->status !== 'active');
+
+                return $statusOrder ?: ($right->id <=> $left->id);
+            })
             ->unique('employee_id')
             ->keyBy('employee_id');
     }

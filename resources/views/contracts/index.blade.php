@@ -57,6 +57,7 @@
                             <th>#</th>
                             <th>Contract Number</th>
                             <th>Type</th>
+                            <th>Category</th>
                             <th>Organization</th>
                             <th>Department</th>
                             <th>Start Date</th>
@@ -72,6 +73,7 @@
                                 <td>{{ $contracts->firstItem() + $loop->index }}</td>
                                 <td>{{ $contract->contract_number }}</td>
                                 <td>{{ $contract->contract_type ?: '-' }}</td>
+                                <td>{{ $contract->contract_category === 'cash_purchase_direct' ? 'Cash Purchase (Direct)' : 'Regular Contract' }}</td>
                                 <td>{{ $contract->organization ?: '-' }}</td>
                                 <td>{{ $contract->department ?: '-' }}</td>
                                 <td>{{ \Carbon\Carbon::parse($contract->start_date)->format('d-m-Y') }}</td>
@@ -116,7 +118,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="10" class="text-center py-4">No contracts found.</td></tr>
+                            <tr><td colspan="11" class="text-center py-4">No contracts found.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -134,49 +136,7 @@
     </div>
 </div>
 
-<div class="modal fade" id="viewContractModal" tabindex="-1"
-     aria-labelledby="viewContractModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="viewContractModalLabel">Contract Record Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body contract-details-modal-body">
-                <table class="table table-bordered table-hover align-middle mb-0">
-                    <tbody>
-                        @foreach([
-                            'contract_number' => 'Contract Number',
-                            'contract_type' => 'Contract Type',
-                            'organization' => 'Organization',
-                            'department' => 'Department',
-                            'address' => 'Address',
-                            'start_date' => 'Start Date',
-                            'end_date' => 'End Date',
-                            'amount' => 'Contract Amount',
-                            'paid_holidays' => 'Paid Holidays (PH)',
-                            'leave_with_wages' => 'Leave with Wages (LWW)',
-                            'status' => 'Status',
-                            'notes' => 'Notes',
-                        ] as $field => $label)
-                            <tr>
-                                <th style="width: 35%; background-color: #f8f9fa;">{{ $label }}</th>
-                                <td id="view_contract_{{ $field }}"></td>
-                            </tr>
-                        @endforeach
-                        <tr>
-                            <th style="width: 35%; background-color: #f8f9fa;">Assigned Services</th>
-                            <td>
-                                <ul id="view_contract_assigned_services" class="mb-0 ps-3"></ul>
-                                <span id="view_contract_no_assigned_services" class="text-muted">No services assigned</span>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
+@include('contracts.partials.view-modal')
 
 @canany(['records.create', 'records.update'])
 <div class="modal fade" id="contractModal" tabindex="-1" aria-labelledby="contractModalLabel" aria-hidden="true">
@@ -204,6 +164,14 @@
                                 @foreach(['Manpower', 'Ambulance', 'Cabs'] as $type)
                                     <option value="{{ $type }}">{{ $type }}</option>
                                 @endforeach
+                            </select>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="contract_category" class="form-label">Contract Category <span class="text-danger">*</span></label>
+                            <select name="contract_category" id="contract_category" class="form-select" required>
+                                <option value="regular_contract" selected>Regular Contract</option>
+                                <option value="cash_purchase_direct">Cash Purchase (Direct)</option>
                             </select>
                             <div class="invalid-feedback"></div>
                         </div>
@@ -284,6 +252,20 @@
                             <div class="mt-2 d-none" id="leaveWithWagesPercentageField">
                                 <label for="leave_with_wages_percentage" class="form-label">LWW Percentage</label>
                                 <input type="number" name="leave_with_wages_percentage" id="leave_with_wages_percentage"
+                                       class="form-control" min="0" max="100" step="0.01">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input type="hidden" name="bonus_enabled" value="0">
+                                <input class="form-check-input" type="checkbox" role="switch"
+                                       name="bonus_enabled" id="bonus_enabled" value="1">
+                                <label class="form-check-label" for="bonus_enabled">Bonus</label>
+                            </div>
+                            <div class="mt-2 d-none" id="bonusPercentageField">
+                                <label for="bonus_percentage" class="form-label">Bonus Percentage</label>
+                                <input type="number" name="bonus_percentage" id="bonus_percentage"
                                        class="form-control" min="0" max="100" step="0.01">
                                 <div class="invalid-feedback"></div>
                             </div>
@@ -377,55 +359,7 @@ document.addEventListener('DOMContentLoaded', function () {
         pageAlert.setAttribute('role', 'alert');
     }
 
-    const viewContractModal = bootstrap.Modal.getOrCreateInstance(
-        document.getElementById('viewContractModal')
-    );
-    document.addEventListener('click', function (event) {
-        const button = event.target.closest('.view-contract-btn');
-        if (!button) return;
-
-        const contract = JSON.parse(decodeURIComponent(button.dataset.contract));
-        const dateFields = ['start_date', 'end_date'];
-        const booleanFields = ['paid_holidays', 'leave_with_wages'];
-
-        
-
-        Object.entries(contract).forEach(([field, value]) => {
-        //alert(value);
-            const cell = document.getElementById('view_contract_' + field);
-            if (!cell) return;
-
-            if (dateFields.includes(field) && value) {
-                const [year, month, day] = value.slice(0, 10).split('-');
-                value = `${day}-${month}-${year}`;
-            } else if (booleanFields.includes(field)) {
-                const percentage = contract[field + '_percentage'];
-                value = Number(value) === 1
-                    ? 'Yes' + (percentage !== null && percentage !== '' ? ` (${percentage}%)` : '')
-                    : 'No';
-            } else if (field === 'amount' && value !== null && value !== '') {
-                value = Number(value).toFixed(2);
-            } else if (field === 'status' && value) {
-                value = value.charAt(0).toUpperCase() + value.slice(1);
-            }
-
-            cell.textContent = value === null || value === '' ? '—' : value;
-        });
-
-        const assignedServicesList = document.getElementById('view_contract_assigned_services');
-        const noAssignedServices = document.getElementById('view_contract_no_assigned_services');
-        assignedServicesList.replaceChildren();
-        (contract.assigned_services || []).forEach(service => {
-            const item = document.createElement('li');
-            item.textContent = service;
-            assignedServicesList.appendChild(item);
-        });
-        noAssignedServices.classList.toggle('d-none', assignedServicesList.childElementCount > 0);
-
-        document.getElementById('viewContractModalLabel').textContent =
-            'Contract Details — ' + contract.contract_number;
-        viewContractModal.show();
-    });
+    @include('contracts.partials.view-modal-script')
 
     async function readResponse(response) {
         const text = await response.text();
@@ -472,8 +406,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const extensionDateField = document.getElementById('extensionDateField');
     const paidHolidays = document.getElementById('paid_holidays');
     const leaveWithWages = document.getElementById('leave_with_wages');
+    const bonusEnabled = document.getElementById('bonus_enabled');
     const paidHolidaysPercentageField = document.getElementById('paidHolidaysPercentageField');
     const leaveWithWagesPercentageField = document.getElementById('leaveWithWagesPercentageField');
+    const bonusPercentageField = document.getElementById('bonusPercentageField');
+    const bonusPercentageInput = document.getElementById('bonus_percentage');
     let contractBeingEdited = null;
     let contractNumberCheckSequence = 0;
     let contractNumberCheckTimer = null;
@@ -579,10 +516,13 @@ document.addEventListener('DOMContentLoaded', function () {
         extensionDateField.classList.toggle('d-none', !contractBeingEdited);
         paidHolidaysPercentageField.classList.toggle('d-none', !paidHolidays.checked);
         leaveWithWagesPercentageField.classList.toggle('d-none', !leaveWithWages.checked);
+        bonusPercentageField.classList.toggle('d-none', !bonusEnabled.checked);
+        bonusPercentageInput.required = bonusEnabled.checked;
     }
 
     paidHolidays.addEventListener('change', syncConditionalFields);
     leaveWithWages.addEventListener('change', syncConditionalFields);
+    bonusEnabled.addEventListener('change', syncConditionalFields);
 
     document.getElementById('addContractBtn')?.addEventListener('click', function () {
         form.reset();

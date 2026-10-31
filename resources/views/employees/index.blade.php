@@ -91,8 +91,6 @@
 
 
 
-
-
 {{-- Police Verification Filter --}}
 <div class="col-md-3">
     <label for="filter_police_verification" class="form-label">
@@ -573,6 +571,34 @@
 
 
 
+                        <div class="col-12">
+                            <div class="employee-form-section">
+                                <i class="bi bi-calculator me-2"></i>Salary Compliance
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label d-block">EPF</label>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch"
+                                       name="epf_enabled" id="epf_enabled" value="1" checked>
+                                <label class="form-check-label" for="epf_enabled">Yes</label>
+                            </div>
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label d-block">ESI</label>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch"
+                                       name="esi_enabled" id="esi_enabled" value="1" checked>
+                                <label class="form-check-label" for="esi_enabled">Yes</label>
+                            </div>
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+
+
                         {{-- Section 3: Other Details --}}
                         <div class="col-12">
                             <div class="employee-form-section">
@@ -599,6 +625,8 @@
                                    id="esi_number" class="form-control">
                             <div class="invalid-feedback"></div>
                         </div>
+
+
 
 
 
@@ -980,6 +1008,17 @@ const policeCertificateWrapper = document.getElementById(
 const policeCertificateInput = document.getElementById(
     'police_certificate_number'
 );
+const epfSwitch = document.getElementById('epf_enabled');
+const esiSwitch = document.getElementById('esi_enabled');
+
+function updateComplianceSwitchLabels() {
+    epfSwitch.nextElementSibling.textContent = epfSwitch.checked ? 'Yes' : 'No';
+    esiSwitch.nextElementSibling.textContent = esiSwitch.checked ? 'Yes' : 'No';
+}
+
+epfSwitch.addEventListener('change', updateComplianceSwitchLabels);
+esiSwitch.addEventListener('change', updateComplianceSwitchLabels);
+updateComplianceSwitchLabels();
 
 function togglePoliceCertificate() {
     const isVerified = policeSwitch.checked;
@@ -1136,6 +1175,7 @@ togglePoliceCertificate();
     document.getElementById('addEmployeeBtn').addEventListener('click', function () {
         form.reset();
         setPhotoPreview('');
+        updateComplianceSwitchLabels();
         togglePoliceCertificate();
         clearFormErrors();
 
@@ -1341,6 +1381,7 @@ document.addEventListener('click', function (event) {
             setPhotoPreview(employee.photo);
 
             // Update the certificate field based on the saved switch.
+            updateComplianceSwitchLabels();
             togglePoliceCertificate();
 
 

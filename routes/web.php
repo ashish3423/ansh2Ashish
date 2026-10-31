@@ -102,6 +102,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/contracts', [ContractController::class, 'index'])
         ->name('contracts.index');
 
+    Route::get('/contracts/dashboard', [ContractController::class, 'dashboard'])
+        ->name('contracts.dashboard');
+
     Route::get('/contracts/check-number', [ContractController::class, 'checkNumber'])
         ->name('contracts.check-number');
 
@@ -111,6 +114,10 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/contracts/{contractId}/services', [ContractServiceController::class, 'update'])
         ->middleware('can:records.update')
         ->name('contracts.services.update');
+
+    Route::delete('/contracts/{contractId}/services/{assignmentId}', [ContractServiceController::class, 'remove'])
+        ->middleware('can:records.update')
+        ->name('contracts.services.remove');
 
     Route::get('/contracts/{contractId}/services/{assignmentId}/move', [ContractServiceController::class, 'editMove'])
         ->middleware('can:records.update')

@@ -9,6 +9,103 @@ use Illuminate\Validation\ValidationException;
 
 class ContractController extends Controller
 {
+    public function dashboard()
+    {
+        $today = now()->toDateString();
+        $thirtyDaysFromNow = now()->addDays(30)->toDateString();
+
+        $statusCounts = DB::table('contracts')
+            ->select('status', DB::raw('COUNT(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status');
+        $categoryCounts = DB::table('contracts')
+            ->select('contract_category', DB::raw('COUNT(*) as total'))
+            ->groupBy('contract_category')
+            ->pluck('total', 'contract_category');
+
+        $expiringContracts = DB::table('contracts')
+            ->where('status', 'active')
+            ->whereNotNull('end_date')
+            ->whereBetween('end_date', [$today, $thirtyDaysFromNow])
+            ->orderBy('end_date')
+            ->limit(8)
+            ->get(['id', 'contract_number', 'organization', 'end_date', 'contract_category']);
+        $recentContracts = DB::table('contracts')
+            ->orderByDesc('id')
+            ->limit(8)
+            ->get();
+        $assignmentsByContract = DB::table('contract_service_assignments as a')
+            ->leftJoin('employees as e', 'e.id', '=', 'a.employee_id')
+            ->leftJoin('service_vehicles as v', 'v.id', '=', 'a.service_vehicle_id')
+            ->leftJoin('employees as d', 'd.id', '=', 'a.driver_id')
+            ->leftJoin('employees as assistant', 'assistant.id', '=', 'a.assistant_id')
+            ->whereIn('a.contract_id', $recentContracts->pluck('id'))
+            ->select(
+                'a.contract_id',
+                'a.employee_id',
+                'a.service_vehicle_id',
+                'a.driver_id',
+                'a.assistant_id',
+                'e.employee_code as employee_code',
+                'e.first_name as employee_first_name',
+                'e.last_name as employee_last_name',
+                'v.registration_number',
+                'd.employee_code as driver_code',
+                'd.first_name as driver_first_name',
+                'd.last_name as driver_last_name',
+                'assistant.employee_code as assistant_code',
+                'assistant.first_name as assistant_first_name',
+                'assistant.last_name as assistant_last_name'
+            )
+            ->get()
+            ->groupBy('contract_id');
+
+        $recentContracts->each(function (object $contract) use ($assignmentsByContract): void {
+            $contract->assigned_services = $assignmentsByContract
+                ->get($contract->id, collect())
+                ->flatMap(function (object $assignment): array {
+                    $resources = [];
+
+                    if ($assignment->employee_id) {
+                        $resources[] = 'Employee: ' . $assignment->employee_code . ' — '
+                            . trim($assignment->employee_first_name . ' ' . ($assignment->employee_last_name ?? ''));
+                    }
+                    if ($assignment->service_vehicle_id) {
+                        $resources[] = 'Vehicle: ' . $assignment->registration_number;
+                    }
+                    if ($assignment->driver_id) {
+                        $resources[] = 'Driver: ' . $assignment->driver_code . ' — '
+                            . trim($assignment->driver_first_name . ' ' . ($assignment->driver_last_name ?? ''));
+                    }
+                    if ($assignment->assistant_id) {
+                        $resources[] = 'Assistant: ' . $assignment->assistant_code . ' — '
+                            . trim($assignment->assistant_first_name . ' ' . ($assignment->assistant_last_name ?? ''));
+                    }
+                    if (! $assignment->service_vehicle_id
+                        && ! $assignment->employee_id
+                        && ($assignment->driver_id || $assignment->assistant_id)) {
+                        array_unshift($resources, 'Crew (vehicle moved)');
+                    }
+
+                    return $resources;
+                })
+                ->values()
+                ->all();
+        });
+
+        return view('contracts.dashboard', [
+            'totalContracts' => $statusCounts->sum(),
+            'activeContracts' => (int) $statusCounts->get('active', 0),
+            'draftContracts' => (int) $statusCounts->get('draft', 0),
+            'completedContracts' => (int) $statusCounts->get('completed', 0),
+            'terminatedContracts' => (int) $statusCounts->get('terminated', 0),
+            'cashPurchaseContracts' => (int) $categoryCounts->get('cash_purchase_direct', 0),
+            'regularContracts' => (int) $categoryCounts->get('regular_contract', 0),
+            'expiringContracts' => $expiringContracts,
+            'recentContracts' => $recentContracts,
+        ]);
+    }
+
     public function index(Request $request)
     {
         $query = DB::table('contracts as c');
@@ -193,6 +290,7 @@ class ContractController extends Controller
             'organization' => ['nullable', 'string', 'max:150'],
             'address' => ['nullable', 'string', 'max:5000'],
             'contract_type' => ['required', Rule::in(['Manpower', 'Ambulance', 'Cabs'])],
+            'contract_category' => ['sometimes', Rule::in(['cash_purchase_direct', 'regular_contract'])],
             'start_date' => ['required', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'extension_date' => ['nullable', 'date'],
@@ -201,17 +299,24 @@ class ContractController extends Controller
             'paid_holidays_percentage' => ['nullable', 'required_if:paid_holidays,1', 'numeric', 'min:0', 'max:100'],
             'leave_with_wages' => ['sometimes', 'boolean'],
             'leave_with_wages_percentage' => ['nullable', 'required_if:leave_with_wages,1', 'numeric', 'min:0', 'max:100'],
+            'bonus_enabled' => ['sometimes', 'boolean'],
+            'bonus_percentage' => ['nullable', 'required_if:bonus_enabled,1', 'numeric', 'min:0', 'max:100'],
             'status' => ['required', Rule::in(['draft', 'active', 'completed', 'terminated'])],
             'notes' => ['nullable', 'string', 'max:5000'],
         ]);
 
         $validated['paid_holidays'] = $request->boolean('paid_holidays');
         $validated['leave_with_wages'] = $request->boolean('leave_with_wages');
+        $validated['contract_category'] = $validated['contract_category'] ?? 'regular_contract';
+        $validated['bonus_enabled'] = $request->boolean('bonus_enabled');
         $validated['paid_holidays_percentage'] = $validated['paid_holidays']
             ? $validated['paid_holidays_percentage']
             : null;
         $validated['leave_with_wages_percentage'] = $validated['leave_with_wages']
             ? $validated['leave_with_wages_percentage']
+            : null;
+        $validated['bonus_percentage'] = $validated['bonus_enabled']
+            ? $validated['bonus_percentage']
             : null;
 
         return $validated;

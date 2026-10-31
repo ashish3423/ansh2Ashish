@@ -15,6 +15,8 @@ class Employee extends Model
         'email',
         'phone',
         'photo',
+        'epf_enabled',
+        'esi_enabled',
         'department',
         'designation',
         'police_verification_status',

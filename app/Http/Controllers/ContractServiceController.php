@@ -347,6 +347,32 @@ class ContractServiceController extends Controller
             ->delete();
     }
 
+    public function remove(int $contractId, int $assignmentId, Request $request)
+    {
+        $contract = DB::table('contracts')->find($contractId);
+        abort_if(! $contract, 404, 'Contract not found.');
+
+        DB::transaction(function () use ($contractId, $assignmentId) {
+            $assignment = DB::table('contract_service_assignments')
+                ->where('id', $assignmentId)
+                ->where('contract_id', $contractId)
+                ->lockForUpdate()
+                ->first();
+            abort_if(! $assignment, 404, 'Service assignment not found.');
+
+            DB::table('contract_service_assignments')
+                ->where('id', $assignmentId)
+                ->delete();
+        });
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Service assignment removed successfully.']);
+        }
+
+        return redirect()->route('contracts.services.edit', $contractId)
+            ->with('status', 'Service assignment removed successfully.');
+    }
+
     public function update(Request $request, int $contractId)
     {
         $contract = DB::table('contracts')->find($contractId);
@@ -375,7 +401,7 @@ class ContractServiceController extends Controller
                 ];
             } else {
                 $rules["assignments.{$index}.service_vehicle_id"] = [
-                    'nullable',
+                    ...($contract->contract_type === 'Ambulance' ? ['required'] : ['nullable']),
                     'integer',
                     'distinct',
                     'exists:service_vehicles,id',
@@ -398,7 +424,15 @@ class ContractServiceController extends Controller
 
         $validated = $request->validate($rules);
         $availabilityErrors = [];
-        $seenEmployees = [];
+        $seenVehicles = [];
+        $seenEmployees = $contract->contract_type === 'Manpower'
+            ? []
+            : DB::table('contract_service_assignments')
+                ->where('contract_id', $contractId)
+                ->whereNotNull('employee_id')
+                ->pluck('employee_id')
+                ->mapWithKeys(fn ($employeeId) => [$employeeId => true])
+                ->all();
         foreach ($validated['assignments'] ?? [] as $index => $assignment) {
             if ($contract->contract_type === 'Manpower') {
                 $field = "assignments.{$index}.employee_id";
@@ -409,7 +443,18 @@ class ContractServiceController extends Controller
                 continue;
             }
 
+            if (! empty($assignment['employee_id'])) {
+                $seenEmployees[$assignment['employee_id']] = true;
+            }
+
             $vehicleField = "assignments.{$index}.service_vehicle_id";
+            if (! empty($assignment['service_vehicle_id'])) {
+                $vehicleId = $assignment['service_vehicle_id'];
+                if (isset($seenVehicles[$vehicleId])) {
+                    $availabilityErrors[$vehicleField] = 'A vehicle can only be assigned once to this contract.';
+                }
+                $seenVehicles[$vehicleId] = true;
+            }
             if (! empty($assignment['service_vehicle_id'])
                 && ! $this->vehicleAvailable($assignment['service_vehicle_id'], $contractId)) {
                 $availabilityErrors[$vehicleField] = 'This vehicle is already assigned to another contract.';

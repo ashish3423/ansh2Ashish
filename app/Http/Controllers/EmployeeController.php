@@ -167,6 +167,8 @@ class EmployeeController extends Controller
             'leaving_date' => 'nullable|date|after_or_equal:joining_date',
             'status' => 'required|in:active,inactive',
             'wages_rate_per_day' => 'nullable|numeric|min:0',
+            'epf_enabled' => 'nullable|boolean',
+            'esi_enabled' => 'nullable|boolean',
         ]);
 
         $request->merge([
@@ -182,6 +184,8 @@ class EmployeeController extends Controller
         }
 
         $validated['employee_code'] = $this->generateEmployeeCode();
+        $validated['epf_enabled'] = $request->boolean('epf_enabled', true);
+        $validated['esi_enabled'] = $request->boolean('esi_enabled', true);
 
         DB::table('employees')->insert([
             ...$validated,
@@ -242,6 +246,8 @@ class EmployeeController extends Controller
             'leaving_date' => 'nullable|date|after_or_equal:joining_date',
             'status' => 'required|in:active,inactive',
             'wages_rate_per_day' => 'nullable|numeric|min:0',
+            'epf_enabled' => 'nullable|boolean',
+            'esi_enabled' => 'nullable|boolean',
         ]);
 
         if ($validated['status'] === 'inactive'
@@ -256,6 +262,8 @@ class EmployeeController extends Controller
         }
 
         unset($validated['photo']);
+        $validated['epf_enabled'] = $request->boolean('epf_enabled');
+        $validated['esi_enabled'] = $request->boolean('esi_enabled');
 
          $request->merge([
              'id_card_status' => $request->boolean('id_card_status'),

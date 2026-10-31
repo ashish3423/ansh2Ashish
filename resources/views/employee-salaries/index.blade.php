@@ -129,13 +129,13 @@
 
 
 
-                    @foreach(['total_salary' => 'Total Salary', 'bonus_amount' => 'Bonus', 'gross_salary' => 'Gross Total', 'deductions' => 'Deductions', 'net_salary' => 'Net Salary'] as $field => $label)
+                    <!-- @foreach(['total_salary' => 'Total Salary', 'bonus_amount' => 'Bonus', 'gross_salary' => 'Gross Total', 'deductions' => 'Deductions', 'net_salary' => 'Net Salary'] as $field => $label)
                         <div class="col-sm-6 col-lg-3">
                             <label for="filter_{{ $field }}" class="form-label">{{ $label }}</label>
                             <input type="number" min="0" step="0.01" name="{{ $field }}"
                                    id="filter_{{ $field }}" class="form-control" value="{{ request($field) }}">
                         </div>
-                    @endforeach
+                    @endforeach -->
 
                     <div class="col-sm-6 col-lg-3 d-flex gap-2">
 
@@ -211,11 +211,11 @@
                                 <td>{{ $salary->daily_wage !== null ? number_format((float) $salary->daily_wage, 2) : '-' }}</td>
                                 <td>{{ number_format((float) $salary->working_days, 2) }}</td>
                                 <td>{{ number_format((float) $salary->total_salary, 2) }}</td>
-                                <td>{{ number_format((float) $salary->bonus_amount, 2) }}</td>
-                                <td>{{ number_format((float) $salary->epf_employee_contribution, 2) }}</td>
-                                <td>{{ number_format((float) $salary->epf_employer_contribution, 2) }}</td>
-                                <td>{{ number_format((float) $salary->esi_employee_contribution, 2) }}</td>
-                                <td>{{ number_format((float) $salary->esi_employer_contribution, 2) }}</td>
+                                <td>{{ number_format((float) $salary->bonus_amount + (float) $salary->contract_bonus_amount, 2) }}</td>
+                                <td>{{ $salary->epf_enabled ? number_format((float) $salary->epf_employee_contribution, 2) : '-' }}</td>
+                                <td>{{ $salary->epf_enabled ? number_format((float) $salary->epf_employer_contribution, 2) : '-' }}</td>
+                                <td>{{ $salary->esi_enabled ? number_format((float) $salary->esi_employee_contribution, 2) : '-' }}</td>
+                                <td>{{ $salary->esi_enabled ? number_format((float) $salary->esi_employer_contribution, 2) : '-' }}</td>
                                 <td>{{ number_format((float) $salary->gross_salary, 2) }}</td>
                                 <td>{{ number_format((float) $salary->deductions, 2) }}</td>
                                 <td>{{ number_format((float) $salary->net_salary, 2) }}</td>
@@ -417,11 +417,15 @@
                                             data-emp-type="{{ $employee->emp_type }}"
                                             data-designation="{{ $employee->designation }}"
                                             data-work-location="{{ $employee->work_location }}"
+                                            data-epf-enabled="{{ $employee->epf_enabled ? 1 : 0 }}"
+                                            data-esi-enabled="{{ $employee->esi_enabled ? 1 : 0 }}"
                                             data-contract-number="{{ $contractsByEmployee->get($employee->id)->contract_number ?? '' }}"
                                             data-paid-holidays="{{ $contractsByEmployee->get($employee->id)->paid_holidays ?? 0 }}"
                                             data-paid-holidays-percentage="{{ $contractsByEmployee->get($employee->id)->paid_holidays_percentage ?? '' }}"
                                             data-leave-with-wages="{{ $contractsByEmployee->get($employee->id)->leave_with_wages ?? 0 }}"
-                                            data-leave-with-wages-percentage="{{ $contractsByEmployee->get($employee->id)->leave_with_wages_percentage ?? '' }}">
+                                            data-leave-with-wages-percentage="{{ $contractsByEmployee->get($employee->id)->leave_with_wages_percentage ?? '' }}"
+                                            data-contract-bonus-enabled="{{ $contractsByEmployee->get($employee->id)->bonus_enabled ?? 0 }}"
+                                            data-contract-bonus-percentage="{{ $contractsByEmployee->get($employee->id)->bonus_percentage ?? '' }}">
                                         {{ $employee->employee_code }} — {{ $employee->first_name }} {{ $employee->last_name }}
                                     </option>
                                 @endforeach
@@ -504,11 +508,17 @@
                             <input type="number" id="salary_leave_with_wages_amount" class="form-control" value="0.00" readonly>
                         </div>
 
+                        <div class="col-md-6 d-none" id="salaryContractBonusField">
+                            <label for="salary_contract_bonus_amount" class="form-label">Contract Bonus</label>
+                            <input type="number" id="salary_contract_bonus_amount" class="form-control" value="0.00" readonly>
+                            <div class="form-text">Calculated as a percentage of total salary.</div>
+                        </div>
+
                         <div class="col-md-6">
-                            <label for="salary_bonus_amount" class="form-label">Bonus Amount Given</label>
+                            <label for="salary_bonus_amount" class="form-label">Additional Bonus Amount Given</label>
                             <input type="number" name="bonus_amount" id="salary_bonus_amount"
                                    class="form-control" min="0" step="0.01" value="0">
-                            <div class="form-text">Enabled only when total salary is less than the bonus eligibility amount.</div>
+                            <div class="form-text">Additional manual bonus is enabled only when total salary is below the eligibility amount.</div>
                             <div class="invalid-feedback"></div>
                         </div>
 
@@ -521,7 +531,12 @@
                             'deductions' => 'Deductions (Employee EPF + ESI)',
                             'net_salary' => 'Net Salary',
                         ] as $field => $label)
-                            <div class="col-md-6">
+                            @php
+                                $complianceType = str_starts_with($field, 'epf_')
+                                    ? 'epf'
+                                    : (str_starts_with($field, 'esi_') ? 'esi' : null);
+                            @endphp
+                            <div class="col-md-6" @if($complianceType) data-compliance-field="{{ $complianceType }}" @endif>
                                 <label for="salary_{{ $field }}" class="form-label">{{ $label }}</label>
                                 <input type="number" id="salary_{{ $field }}" class="form-control" value="0.00" readonly>
                             </div>
@@ -620,6 +635,7 @@
             'working_days' => 'Working Days',
             'total_salary' => 'Total Salary',
             'bonus_amount' => 'Bonus Amount',
+            'contract_bonus_amount' => 'Contract Bonus',
             'epf_employee_contribution' => 'EPF Employee Share',
             'epf_employer_contribution' => 'EPF Employer Share',
             'esi_employee_contribution' => 'ESI Employee Share',
@@ -631,7 +647,12 @@
             'updated_at' => 'Updated At',
         ] as $field => $label)
 
-            <tr>
+            @php
+                $complianceType = str_starts_with($field, 'epf_')
+                    ? 'epf'
+                    : (str_starts_with($field, 'esi_') ? 'esi' : null);
+            @endphp
+            <tr @if($complianceType) data-compliance-detail="{{ $complianceType }}" @endif>
                 <th style="width: 35%; background-color: #f8f9fa;">
                     {{ $label }}
                 </th>
@@ -761,20 +782,26 @@ document.addEventListener('DOMContentLoaded', () => {
             workingDays * dailyWage * 100
         ) / 100;
         const selectedEmployee = employeeSelect.selectedOptions[0];
+        const epfEnabled = selectedEmployee?.dataset.epfEnabled === '1';
+        const esiEnabled = selectedEmployee?.dataset.esiEnabled === '1';
         const hasPaidHolidays = selectedEmployee?.dataset.paidHolidays === '1';
         const hasLeaveWithWages = selectedEmployee?.dataset.leaveWithWages === '1';
+        const hasContractBonus = selectedEmployee?.dataset.contractBonusEnabled === '1';
+        const contractBonusPercentage = Number(selectedEmployee?.dataset.contractBonusPercentage || 0);
         const paidHolidaysPercentage = Number(selectedEmployee?.dataset.paidHolidaysPercentage || 0);
         const leaveWithWagesPercentage = Number(selectedEmployee?.dataset.leaveWithWagesPercentage || 0);
         const paidHolidays = hasPaidHolidays
             ? Math.round(totalSalary * paidHolidaysPercentage) / 100 : 0;
         const leaveWithWages = hasLeaveWithWages
             ? Math.round(totalSalary * leaveWithWagesPercentage) / 100 : 0;
+        const contractBonus = hasContractBonus
+            ? Math.round(totalSalary * contractBonusPercentage) / 100 : 0;
         const epfThreshold = complianceSettings?.epf_eligibility_amount;
         const esiThreshold = complianceSettings?.esi_eligibility_amount;
         const bonusThreshold = complianceSettings?.bonus_eligibility_amount;
-        const epfEligible = epfThreshold !== null && epfThreshold !== undefined &&
+        const epfEligible = epfEnabled && epfThreshold !== null && epfThreshold !== undefined &&
             totalSalary >= Number(epfThreshold);
-        const esiEligible = esiThreshold !== null && esiThreshold !== undefined &&
+        const esiEligible = esiEnabled && esiThreshold !== null && esiThreshold !== undefined &&
             totalSalary <= Number(esiThreshold);
         const bonusEligible = bonusThreshold !== null && bonusThreshold !== undefined &&
             totalSalary < Number(bonusThreshold);
@@ -789,15 +816,23 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('salary_total_salary').value = totalSalary.toFixed(2);
         document.getElementById('salary_paid_holidays_amount').value = paidHolidays.toFixed(2);
         document.getElementById('salary_leave_with_wages_amount').value = leaveWithWages.toFixed(2);
+        document.getElementById('salary_contract_bonus_amount').value = contractBonus.toFixed(2);
         document.getElementById('salaryPaidHolidaysField').classList.toggle('d-none', !hasPaidHolidays);
         document.getElementById('salaryLeaveWithWagesField').classList.toggle('d-none', !hasLeaveWithWages);
+        document.getElementById('salaryContractBonusField').classList.toggle('d-none', !hasContractBonus);
+        document.querySelectorAll('[data-compliance-field="epf"]').forEach(field => {
+            field.classList.toggle('d-none', !epfEnabled);
+        });
+        document.querySelectorAll('[data-compliance-field="esi"]').forEach(field => {
+            field.classList.toggle('d-none', !esiEnabled);
+        });
         document.getElementById('complianceEligibilityStatus').textContent =
-            `EPF: ${epfEligible ? 'Eligible' : 'Not eligible'}; ESI: ${esiEligible ? 'Eligible' : 'Not eligible'}; Bonus: ${bonusEligible ? 'Eligible' : 'Not eligible'}.`;
+            `EPF: ${epfEnabled ? (epfEligible ? 'Eligible' : 'Not eligible') : 'Disabled'}; ESI: ${esiEnabled ? (esiEligible ? 'Eligible' : 'Not eligible') : 'Disabled'}; Bonus: ${bonusEligible ? 'Eligible' : 'Not eligible'}.`;
         bonusInput.disabled = !bonusEligible;
         if (!bonusEligible) bonusInput.value = '0';
         const bonus = Number(bonusInput.value || 0);
         const deductions = epfEmployee + esiEmployee;
-        const gross = totalSalary + paidHolidays + leaveWithWages + bonus + epfEmployer + esiEmployer;
+        const gross = totalSalary + paidHolidays + leaveWithWages + contractBonus + bonus + epfEmployer + esiEmployer;
         const net = gross - epfEmployer - esiEmployer - deductions;
         [
             ['epf_employee_contribution', epfEmployee],
@@ -849,7 +884,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         ? Number(salary.daily_wage).toFixed(2) : '—',
                     working_days: Number(salary.working_days || 0).toFixed(2),
                     total_salary: Number(salary.total_salary || 0).toFixed(2),
-                    bonus_amount: Number(salary.bonus_amount || 0).toFixed(2),
+                    bonus_amount: (Number(salary.bonus_amount || 0) +
+                        Number(salary.contract_bonus_amount || 0)).toFixed(2),
+                    contract_bonus_amount: Number(salary.contract_bonus_amount || 0).toFixed(2),
                     epf_employee_contribution: Number(salary.epf_employee_contribution || 0).toFixed(2),
                     epf_employer_contribution: Number(salary.epf_employer_contribution || 0).toFixed(2),
                     esi_employee_contribution: Number(salary.esi_employee_contribution || 0).toFixed(2),
@@ -872,6 +909,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (td) {
                         td.textContent = td.value = value || '—';
                     }
+                });
+                document.querySelectorAll('[data-compliance-detail="epf"]').forEach(row => {
+                    row.classList.toggle('d-none', Number(salary.epf_enabled) !== 1);
+                });
+                document.querySelectorAll('[data-compliance-detail="esi"]').forEach(row => {
+                    row.classList.toggle('d-none', Number(salary.esi_enabled) !== 1);
                 });
                 viewModal.show();
             } catch (error) {

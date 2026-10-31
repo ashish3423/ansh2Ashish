@@ -5,16 +5,33 @@
 
 @section('content')
 @php
-    $formAssignments = old('assignments', $assignments->map(function ($assignment) use ($contract) {
-        return $contract->contract_type === 'Manpower'
-            ? ['employee_id' => $assignment->employee_id]
-            : [
-                'service_vehicle_id' => $assignment->service_vehicle_id,
-                'driver_id' => $assignment->driver_id,
-                'assistant_id' => $assignment->assistant_id,
-                'crew_only' => ! $assignment->service_vehicle_id,
-            ];
-    })->all());
+    $assignmentIds = old('assignment_ids', $assignments->pluck('id')->all());
+    $formAssignments = old('assignments');
+    if ($formAssignments === null) {
+        $formAssignments = $assignments->map(function ($assignment) use ($contract) {
+            return $contract->contract_type === 'Manpower'
+                ? [
+                    'assignment_id' => $assignment->id,
+                    'employee_id' => $assignment->employee_id,
+                ]
+                : [
+                    'assignment_id' => $assignment->id,
+                    'service_vehicle_id' => $assignment->service_vehicle_id,
+                    'driver_id' => $assignment->driver_id,
+                    'assistant_id' => $assignment->assistant_id,
+                    'crew_only' => ! $assignment->service_vehicle_id,
+                ];
+        })->all();
+    } else {
+        foreach ($formAssignments as $index => &$assignment) {
+            if (is_array($assignment)) {
+                $assignment['assignment_id'] = $assignmentIds[$index] ?? null;
+            } else {
+                $assignment = ['assignment_id' => $assignmentIds[$index] ?? null];
+            }
+        }
+        unset($assignment);
+    }
 @endphp
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
@@ -78,7 +95,7 @@
                     </div>
                     <p class="text-muted small mt-3 mb-0">
                         Saving with no rows removes all current assignments from this contract.
-                        Ambulance assistants are optional.
+                        Ambulances require a vehicle; drivers and assistants are optional.
                     </p>
                 </form>
             @endif
@@ -89,7 +106,7 @@
                 <h5>Move resources separately</h5>
                 <p class="text-muted small">Move a vehicle without its crew, or move employees independently to manpower or an available vehicle crew position.</p>
                 @foreach($assignments as $assignment)
-                    <div class="border rounded p-3 mb-2">
+                    <div class="border rounded p-3 mb-2" data-assignment-id="{{ $assignment->id }}">
                         @if($assignment->service_vehicle_id)
                             <div class="mb-2">
                                 <strong>{{ $assignment->registration_number }}</strong>
@@ -221,7 +238,9 @@ document.addEventListener('DOMContentLoaded', function () {
         'label' => $vehicle->registration_number . ($vehicle->make_model ? ' — ' . $vehicle->make_model : ''),
     ])->values());
     const initialAssignments = @json($formAssignments);
+    const reservedEmployeeIds = @json($assignments->pluck('employee_id')->filter()->values());
     const container = document.getElementById('assignmentRows');
+    const removeUrlTemplate = @json(route('contracts.services.remove', [$contract->id, '__ASSIGNMENT_ID__']));
 
     function selectField(label, name, options, selected, required, placeholder) {
         const wrapper = document.createElement('div');
@@ -233,6 +252,9 @@ document.addEventListener('DOMContentLoaded', function () {
         select.className = 'form-select';
         select.name = name;
         select.required = required;
+        select.dataset.placeholder = placeholder;
+        select.dataset.employeeResource = /employee_id|driver_id|assistant_id/.test(name) ? 'true' : 'false';
+        select.dataset.vehicleResource = name.includes('service_vehicle_id') ? 'true' : 'false';
         const emptyOption = new Option(placeholder, '');
         select.add(emptyOption);
         options.forEach(option => select.add(new Option(option.label, option.id)));
@@ -245,16 +267,31 @@ document.addEventListener('DOMContentLoaded', function () {
         const row = document.createElement('div');
         row.className = 'row g-3 align-items-end border rounded p-3 mx-0';
         const index = container.children.length;
+        if (values.assignment_id) {
+            const assignmentId = document.createElement('input');
+            assignmentId.type = 'hidden';
+            assignmentId.name = `assignment_ids[${index}]`;
+            assignmentId.value = values.assignment_id;
+            row.append(assignmentId);
+        }
 
         if (type === 'Manpower') {
             row.append(selectField('Employee', `assignments[${index}][employee_id]`, employees, values.employee_id, true, 'Select employee'));
-        } else if (values.crew_only) {
+        } else if (values.crew_only && type !== 'Ambulance') {
             row.append(selectField('Driver (optional)', `assignments[${index}][driver_id]`, employees, values.driver_id, false, 'No driver'));
             if (type === 'Ambulance') {
                 row.append(selectField('Assistant (optional)', `assignments[${index}][assistant_id]`, employees, values.assistant_id, false, 'No assistant'));
             }
         } else {
-            row.append(selectField('Vehicle (optional)', `assignments[${index}][service_vehicle_id]`, vehicles, values.service_vehicle_id, false, 'No vehicle'));
+            const vehicleRequired = type === 'Ambulance';
+            row.append(selectField(
+                vehicleRequired ? 'Vehicle' : 'Vehicle (optional)',
+                `assignments[${index}][service_vehicle_id]`,
+                vehicles,
+                values.service_vehicle_id,
+                vehicleRequired,
+                vehicleRequired ? 'Select vehicle' : 'No vehicle'
+            ));
             row.append(selectField('Driver (optional)', `assignments[${index}][driver_id]`, employees, values.driver_id, false, 'No driver'));
             if (type === 'Ambulance') {
                 row.append(selectField('Assistant (optional)', `assignments[${index}][assistant_id]`, employees, values.assistant_id, false, 'No assistant'));
@@ -267,13 +304,81 @@ document.addEventListener('DOMContentLoaded', function () {
         removeButton.type = 'button';
         removeButton.className = 'btn btn-outline-danger';
         removeButton.textContent = 'Remove';
-        removeButton.addEventListener('click', function () {
+        removeButton.addEventListener('click', async function () {
+            const assignmentId = values.assignment_id;
+            if (assignmentId) {
+                removeButton.disabled = true;
+                try {
+                    const response = await fetch(removeUrlTemplate.replace('__ASSIGNMENT_ID__', assignmentId), {
+                        method: 'DELETE',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': assignmentForm.querySelector('input[name="_token"]').value,
+                        },
+                    });
+                    const data = await response.json();
+                    if (!response.ok) {
+                        const messages = Object.values(data.errors || {}).flat();
+                        throw new Error(messages.join(' ') || data.message || 'Unable to remove this assignment.');
+                    }
+                    document.querySelector(`[data-assignment-id="${assignmentId}"]`)?.remove();
+                } catch (error) {
+                    window.alert(error.message);
+                    removeButton.disabled = false;
+                    return;
+                }
+            }
+
             row.remove();
             renumberRows();
+            refreshEmployeeOptions();
+            refreshVehicleOptions();
         });
         removeWrapper.append(removeButton);
         row.append(removeWrapper);
         container.append(row);
+    }
+
+    function refreshEmployeeOptions() {
+        const employeeSelects = Array.from(container.querySelectorAll('select[data-employee-resource="true"]'));
+        const selectedEmployeeIds = new Set([
+            ...reservedEmployeeIds.map(String),
+            ...employeeSelects.map(select => select.value).filter(Boolean),
+        ]);
+
+        employeeSelects.forEach(select => {
+            const selected = select.value;
+            const unavailableToOtherFields = new Set(selectedEmployeeIds);
+            unavailableToOtherFields.delete(selected);
+
+            select.replaceChildren(new Option(select.dataset.placeholder, ''));
+            employees.forEach(employee => {
+                if (!unavailableToOtherFields.has(String(employee.id))) {
+                    select.add(new Option(employee.label, employee.id));
+                }
+            });
+            select.value = selected;
+        });
+    }
+
+    function refreshVehicleOptions() {
+        const vehicleSelects = Array.from(container.querySelectorAll('select[data-vehicle-resource="true"]'));
+        const selectedVehicleIds = new Set(vehicleSelects.map(select => select.value).filter(Boolean));
+
+        vehicleSelects.forEach(select => {
+            const selected = select.value;
+            const unavailableToOtherFields = new Set(selectedVehicleIds);
+            unavailableToOtherFields.delete(selected);
+
+            select.replaceChildren(new Option(select.dataset.placeholder, ''));
+            vehicles.forEach(vehicle => {
+                if (!unavailableToOtherFields.has(String(vehicle.id))) {
+                    select.add(new Option(vehicle.label, vehicle.id));
+                }
+            });
+            select.value = selected;
+        });
     }
 
     function renumberRows() {
@@ -281,11 +386,29 @@ document.addEventListener('DOMContentLoaded', function () {
             row.querySelectorAll('select').forEach(select => {
                 select.name = select.name.replace(/assignments\[\d+\]/, `assignments[${index}]`);
             });
+            const assignmentId = row.querySelector('input[name^="assignment_ids"]');
+            if (assignmentId) {
+                assignmentId.name = `assignment_ids[${index}]`;
+            }
         });
     }
 
-    document.getElementById('addAssignment').addEventListener('click', () => addRow());
+    container.addEventListener('change', function (event) {
+        if (event.target.matches('select[data-employee-resource="true"]')) {
+            refreshEmployeeOptions();
+        }
+        if (event.target.matches('select[data-vehicle-resource="true"]')) {
+            refreshVehicleOptions();
+        }
+    });
+    document.getElementById('addAssignment').addEventListener('click', () => {
+        addRow();
+        refreshEmployeeOptions();
+        refreshVehicleOptions();
+    });
     initialAssignments.forEach(assignment => addRow(assignment));
+    refreshEmployeeOptions();
+    refreshVehicleOptions();
     }
 });
 </script>

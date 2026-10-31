@@ -27,7 +27,9 @@ class EmployeeSalaryController extends Controller
                 'designation',
                 'work_location',
                 'wages_rate_per_day',
-                'emp_type'
+                'emp_type',
+                'epf_enabled',
+                'esi_enabled'
             )
             ->orderBy('employee_code')
             ->get();
@@ -95,11 +97,11 @@ class EmployeeSalaryController extends Controller
                 $salary->daily_wage === null ? '-' : (float) $salary->daily_wage,
                 (float) $salary->working_days,
                 (float) $salary->total_salary,
-                (float) $salary->bonus_amount,
-                (float) $salary->epf_employee_contribution,
-                (float) $salary->epf_employer_contribution,
-                (float) $salary->esi_employee_contribution,
-                (float) $salary->esi_employer_contribution,
+                (float) $salary->bonus_amount + (float) $salary->contract_bonus_amount,
+                (bool) $salary->epf_enabled ? (float) $salary->epf_employee_contribution : '-',
+                (bool) $salary->epf_enabled ? (float) $salary->epf_employer_contribution : '-',
+                (bool) $salary->esi_enabled ? (float) $salary->esi_employee_contribution : '-',
+                (bool) $salary->esi_enabled ? (float) $salary->esi_employer_contribution : '-',
                 (float) $salary->gross_salary,
                 (float) $salary->deductions,
                 (float) $salary->net_salary,
@@ -168,7 +170,7 @@ class EmployeeSalaryController extends Controller
         ]);
 
         $employee = DB::table('employees')
-            ->select('wages_rate_per_day')
+            ->select('wages_rate_per_day', 'epf_enabled', 'esi_enabled')
             ->where('id', $validated['employee_id'])
             ->first();
         abort_unless($employee, 404, 'Employee not found.');
@@ -178,16 +180,21 @@ class EmployeeSalaryController extends Controller
         $totalSalary = round($workingDays * (float) ($employee->wages_rate_per_day ?? 0), 2);
         $contract = $this->contractsByEmployee([(int) $validated['employee_id']])
             ->get($validated['employee_id']);
+        $contractBonus = ! empty($contract?->bonus_enabled)
+            ? round($totalSalary * (float) ($contract->bonus_percentage ?? 0) / 100, 2)
+            : 0;
         $paidHolidays = ! empty($contract?->paid_holidays)
             ? round($totalSalary * (float) ($contract->paid_holidays_percentage ?? 0) / 100, 2)
             : 0;
         $leaveWithWages = ! empty($contract?->leave_with_wages)
             ? round($totalSalary * (float) ($contract->leave_with_wages_percentage ?? 0) / 100, 2)
             : 0;
-        $epfEligible = $settings
+        $epfEligible = (bool) $employee->epf_enabled
+            && $settings
             && $settings->epf_eligibility_amount !== null
             && $totalSalary >= (float) $settings->epf_eligibility_amount;
-        $esiEligible = $settings
+        $esiEligible = (bool) $employee->esi_enabled
+            && $settings
             && $settings->esi_eligibility_amount !== null
             && $totalSalary <= (float) $settings->esi_eligibility_amount;
         $bonusEligible = $settings
@@ -214,7 +221,7 @@ class EmployeeSalaryController extends Controller
             ? round($totalSalary * (float) ($settings->esi_employer_percentage ?? 0) / 100)
             : 0;
         $deductions = round($epfEmployee + $esiEmployee, 2);
-        $gross = round($totalSalary + $paidHolidays + $leaveWithWages + $bonus + $epfEmployer + $esiEmployer, 2);
+        $gross = round($totalSalary + $paidHolidays + $leaveWithWages + $bonus + $contractBonus + $epfEmployer + $esiEmployer, 2);
         $net = round($gross - $epfEmployer - $esiEmployer - $deductions, 2);
 
         return [
@@ -227,6 +234,7 @@ class EmployeeSalaryController extends Controller
             'allowances' => 0,
             'deductions' => $deductions,
             'bonus_amount' => $bonus,
+            'contract_bonus_amount' => $contractBonus,
             'epf_employee_contribution' => $epfEmployee,
             'epf_employer_contribution' => $epfEmployer,
             'esi_employee_contribution' => $esiEmployee,
@@ -249,6 +257,8 @@ class EmployeeSalaryController extends Controller
                 'e.last_name',
                 'e.designation',
                 'e.emp_type',
+                'e.epf_enabled',
+                'e.esi_enabled',
                 'e.wages_rate_per_day as daily_wage'
             );
 
@@ -290,7 +300,10 @@ class EmployeeSalaryController extends Controller
                 'paid_holidays',
                 'paid_holidays_percentage',
                 'leave_with_wages',
-                'leave_with_wages_percentage'
+                'leave_with_wages_percentage',
+                'contract_category',
+                'bonus_enabled',
+                'bonus_percentage'
             )
             ->get();
         $assignedContracts = DB::table('contract_service_assignments as a')
@@ -310,7 +323,10 @@ class EmployeeSalaryController extends Controller
                 'c.paid_holidays',
                 'c.paid_holidays_percentage',
                 'c.leave_with_wages',
-                'c.leave_with_wages_percentage'
+                'c.leave_with_wages_percentage',
+                'c.contract_category',
+                'c.bonus_enabled',
+                'c.bonus_percentage'
             )
             ->get()
             ->flatMap(function (object $contract): array {
@@ -329,6 +345,9 @@ class EmployeeSalaryController extends Controller
                         'paid_holidays_percentage' => $contract->paid_holidays_percentage,
                         'leave_with_wages' => $contract->leave_with_wages,
                         'leave_with_wages_percentage' => $contract->leave_with_wages_percentage,
+                        'contract_category' => $contract->contract_category,
+                        'bonus_enabled' => $contract->bonus_enabled,
+                        'bonus_percentage' => $contract->bonus_percentage,
                     ])
                     ->all();
             });

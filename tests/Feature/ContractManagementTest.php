@@ -56,6 +56,55 @@ class ContractManagementTest extends TestCase
         $holidayOptionsMigration->up();
         $contractExtensionMigration = require base_path('database/migrations/2026_10_31_000000_add_extension_date_and_holiday_percentages_to_contracts_table.php');
         $contractExtensionMigration->up();
+        $contractCategoryBonusMigration = require base_path('database/migrations/2026_10_31_000002_add_category_and_bonus_to_contracts_table.php');
+        $contractCategoryBonusMigration->up();
+    }
+
+    public function test_contract_dashboard_shows_summary_and_expiring_contracts(): void
+    {
+        $user = User::factory()->create(['role' => User::ROLE_SUPER_ADMIN]);
+        DB::table('contracts')->insert([
+            [
+                'contract_number' => 'CON-DASH-ACTIVE',
+                'contract_type' => 'Ambulance',
+                'organization' => 'North Clinic',
+                'start_date' => now()->subMonth()->toDateString(),
+                'end_date' => now()->addDays(10)->toDateString(),
+                'status' => 'active',
+                'contract_category' => 'cash_purchase_direct',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'contract_number' => 'CON-DASH-DRAFT',
+                'contract_type' => 'Manpower',
+                'organization' => 'South Clinic',
+                'start_date' => now()->toDateString(),
+                'end_date' => null,
+                'status' => 'draft',
+                'contract_category' => 'regular_contract',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('contracts.dashboard'))
+            ->assertOk()
+            ->assertSee('Contract Dashboard')
+            ->assertSee('Total Contracts')
+            ->assertSee('Cash Purchase (Direct)')
+            ->assertSee('CON-DASH-ACTIVE')
+            ->assertSee('North Clinic')
+            ->assertSee('Expiring in the Next 30 Days')
+            ->assertSee('class="modal fade" id="viewContractModal"', false)
+            ->assertSee('class="btn btn-sm btn-outline-primary view-contract-btn"', false)
+            ->assertSee('data-contract=');
+
+        $this->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Welcome, ' . $user->name)
+            ->assertSee('You are signed in to your account successfully.');
     }
 
     public function test_super_admin_can_create_update_list_and_delete_contracts(): void
@@ -234,6 +283,51 @@ class ContractManagementTest extends TestCase
         ]);
     }
 
+    public function test_contract_category_and_bonus_percentage_are_saved_and_bonus_can_be_disabled(): void
+    {
+        $user = User::factory()->create(['role' => User::ROLE_SUPER_ADMIN]);
+        $this->actingAs($user);
+
+        $contractData = [
+            'contract_number' => 'CON-CATEGORY-BONUS',
+            'contract_type' => 'Manpower',
+            'contract_category' => 'cash_purchase_direct',
+            'start_date' => '2026-01-01',
+            'status' => 'active',
+            'bonus_enabled' => 1,
+        ];
+        $this->postJson(route('contracts.store'), $contractData)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('bonus_percentage');
+
+        $this->postJson(route('contracts.store'), [
+            ...$contractData,
+            'bonus_percentage' => 10,
+        ])->assertOk();
+
+        $contractId = DB::table('contracts')->where('contract_number', 'CON-CATEGORY-BONUS')->value('id');
+        $this->assertDatabaseHas('contracts', [
+            'id' => $contractId,
+            'contract_category' => 'cash_purchase_direct',
+            'bonus_enabled' => true,
+            'bonus_percentage' => 10,
+        ]);
+
+        $this->putJson(route('contracts.update', $contractId), [
+            ...$contractData,
+            'contract_category' => 'regular_contract',
+            'bonus_enabled' => 0,
+            'bonus_percentage' => 10,
+        ])->assertOk();
+
+        $this->assertDatabaseHas('contracts', [
+            'id' => $contractId,
+            'contract_category' => 'regular_contract',
+            'bonus_enabled' => false,
+            'bonus_percentage' => null,
+        ]);
+    }
+
     public function test_completed_contract_resources_are_available_for_assignment_and_cannot_be_reactivated_after_reassignment(): void
     {
         $user = User::factory()->create(['role' => User::ROLE_SUPER_ADMIN]);
@@ -365,6 +459,9 @@ class ContractManagementTest extends TestCase
 
         $this->post(route('contracts.services.move', [1, 1]), ['target_contract_id' => 2])
             ->assertForbidden();
+
+        $this->delete(route('contracts.services.remove', [1, 1]))
+            ->assertForbidden();
     }
 
     public function test_manpower_employees_can_be_assigned_to_a_contract_and_seen_in_the_listing(): void
@@ -424,19 +521,9 @@ class ContractManagementTest extends TestCase
         ]);
     }
 
-    public function test_ambulance_contract_can_be_assigned_a_registered_vehicle_driver_and_optional_assistant(): void
+    public function test_ambulance_contract_can_be_assigned_a_vehicle_without_a_driver_or_assistant(): void
     {
         $user = User::factory()->create(['role' => User::ROLE_SUPER_ADMIN]);
-        $driverId = DB::table('employees')->insertGetId([
-            'employee_code' => 'EMP-003',
-            'first_name' => 'Casey',
-            'last_name' => 'Driver',
-        ]);
-        $assistantId = DB::table('employees')->insertGetId([
-            'employee_code' => 'EMP-004',
-            'first_name' => 'Sam',
-            'last_name' => 'Assistant',
-        ]);
         $contractId = DB::table('contracts')->insertGetId([
             'contract_number' => 'CON-004',
             'contract_type' => 'Ambulance',
@@ -457,16 +544,14 @@ class ContractManagementTest extends TestCase
         $this->put(route('contracts.services.update', $contractId), [
             'assignments' => [[
                 'service_vehicle_id' => $vehicleId,
-                'driver_id' => $driverId,
-                'assistant_id' => $assistantId,
             ]],
         ])->assertRedirect(route('contracts.services.edit', $contractId));
 
         $this->assertDatabaseHas('contract_service_assignments', [
             'contract_id' => $contractId,
             'service_vehicle_id' => $vehicleId,
-            'driver_id' => $driverId,
-            'assistant_id' => $assistantId,
+            'driver_id' => null,
+            'assistant_id' => null,
         ]);
 
         $this->get(route('contracts.index'))
@@ -474,8 +559,187 @@ class ContractManagementTest extends TestCase
             ->assertSee('CON-004')
             ->assertSee('Assigned Services')
             ->assertSee('AMB-001')
-            ->assertSee('Casey%20Driver')
             ->assertSee('view-contract-btn');
+    }
+
+    public function test_ambulance_assignment_requires_a_vehicle_when_saving(): void
+    {
+        $user = User::factory()->create(['role' => User::ROLE_SUPER_ADMIN]);
+        $contractId = DB::table('contracts')->insertGetId([
+            'contract_number' => 'CON-AMB-NO-VEHICLE',
+            'contract_type' => 'Ambulance',
+            'start_date' => '2026-01-01',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->actingAs($user);
+
+        $this->putJson(route('contracts.services.update', $contractId), [
+            'assignments' => [[
+                'driver_id' => null,
+                'assistant_id' => null,
+            ]],
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('assignments.0.service_vehicle_id');
+
+        $this->assertDatabaseMissing('contract_service_assignments', [
+            'contract_id' => $contractId,
+        ]);
+    }
+
+    public function test_an_employee_cannot_be_assigned_to_multiple_ambulance_crew_roles_or_rows(): void
+    {
+        $user = User::factory()->create(['role' => User::ROLE_SUPER_ADMIN]);
+        $employeeId = DB::table('employees')->insertGetId([
+            'employee_code' => 'EMP-DUPLICATE-001',
+            'first_name' => 'Jordan',
+        ]);
+        $contractId = DB::table('contracts')->insertGetId([
+            'contract_number' => 'CON-AMB-DUPLICATE',
+            'contract_type' => 'Ambulance',
+            'start_date' => '2026-01-01',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $vehicleIds = [];
+        foreach (['AMB-DUPLICATE-001', 'AMB-DUPLICATE-002'] as $registrationNumber) {
+            $vehicleIds[] = DB::table('service_vehicles')->insertGetId([
+                'vehicle_type' => 'Ambulance',
+                'registration_number' => $registrationNumber,
+                'status' => 'active',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+        $this->actingAs($user);
+
+        $this->get(route('contracts.services.edit', $contractId))
+            ->assertOk()
+            ->assertSee('refreshEmployeeOptions', false)
+            ->assertSee('employeeResource', false);
+
+        $this->putJson(route('contracts.services.update', $contractId), [
+            'assignments' => [
+                [
+                    'service_vehicle_id' => $vehicleIds[0],
+                    'driver_id' => $employeeId,
+                ],
+                [
+                    'service_vehicle_id' => $vehicleIds[1],
+                    'assistant_id' => $employeeId,
+                ],
+            ],
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('assignments.1.assistant_id');
+
+        $this->assertDatabaseMissing('contract_service_assignments', [
+            'contract_id' => $contractId,
+        ]);
+    }
+
+    public function test_a_vehicle_cannot_be_assigned_to_multiple_rows_of_the_same_contract(): void
+    {
+        $user = User::factory()->create(['role' => User::ROLE_SUPER_ADMIN]);
+        $contractId = DB::table('contracts')->insertGetId([
+            'contract_number' => 'CON-CAB-DUPLICATE-VEHICLE',
+            'contract_type' => 'Cabs',
+            'start_date' => '2026-01-01',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $vehicleId = DB::table('service_vehicles')->insertGetId([
+            'vehicle_type' => 'Cabs',
+            'registration_number' => 'CAB-DUPLICATE-001',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->actingAs($user);
+
+        $this->get(route('contracts.services.edit', $contractId))
+            ->assertOk()
+            ->assertSee('refreshVehicleOptions', false)
+            ->assertSee('vehicleResource', false);
+
+        $this->putJson(route('contracts.services.update', $contractId), [
+            'assignments' => [
+                ['service_vehicle_id' => $vehicleId],
+                ['service_vehicle_id' => $vehicleId],
+            ],
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('assignments.1.service_vehicle_id');
+
+        $this->assertDatabaseMissing('contract_service_assignments', [
+            'contract_id' => $contractId,
+        ]);
+    }
+
+    public function test_removing_an_assignment_releases_its_vehicle_and_crew_for_another_contract(): void
+    {
+        $user = User::factory()->create(['role' => User::ROLE_SUPER_ADMIN]);
+        $driverId = DB::table('employees')->insertGetId([
+            'employee_code' => 'EMP-REMOVE-001',
+            'first_name' => 'Jordan',
+        ]);
+        $sourceContractId = DB::table('contracts')->insertGetId([
+            'contract_number' => 'CON-REMOVE-SOURCE',
+            'contract_type' => 'Ambulance',
+            'start_date' => '2026-01-01',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $targetContractId = DB::table('contracts')->insertGetId([
+            'contract_number' => 'CON-REMOVE-TARGET',
+            'contract_type' => 'Ambulance',
+            'start_date' => '2026-01-01',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $vehicleId = DB::table('service_vehicles')->insertGetId([
+            'vehicle_type' => 'Ambulance',
+            'registration_number' => 'AMB-REMOVE-001',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $assignmentId = DB::table('contract_service_assignments')->insertGetId([
+            'contract_id' => $sourceContractId,
+            'service_vehicle_id' => $vehicleId,
+            'driver_id' => $driverId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->actingAs($user);
+
+        $this->get(route('contracts.services.edit', $sourceContractId))
+            ->assertOk()
+            ->assertSee('"assignment_id":1', false)
+            ->assertSee('__ASSIGNMENT_ID__', false);
+
+        $this->deleteJson(route('contracts.services.remove', [$sourceContractId, $assignmentId]))
+            ->assertOk()
+            ->assertJson(['message' => 'Service assignment removed successfully.']);
+
+        $this->putJson(route('contracts.services.update', $targetContractId), [
+            'assignments' => [[
+                'service_vehicle_id' => $vehicleId,
+                'driver_id' => $driverId,
+            ]],
+        ])->assertOk();
+
+        $this->assertDatabaseMissing('contract_service_assignments', [
+            'id' => $assignmentId,
+        ]);
+        $this->assertDatabaseHas('contract_service_assignments', [
+            'contract_id' => $targetContractId,
+            'service_vehicle_id' => $vehicleId,
+            'driver_id' => $driverId,
+        ]);
     }
 
     public function test_vehicle_registry_rejects_assigning_the_wrong_vehicle_type(): void

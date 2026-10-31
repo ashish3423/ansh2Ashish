@@ -43,9 +43,15 @@
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link {{ request()->routeIs('contracts.*') ? 'active' : '' }}" href="{{ route('contracts.index') }}">
+          <a class="nav-link {{ request()->routeIs('contracts.index') ? 'active' : '' }}" href="{{ route('contracts.index') }}">
             <i class="bi bi-file-earmark-text nav-icon"></i>
             Contracts
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {{ request()->routeIs('contracts.dashboard') ? 'active' : '' }}" href="{{ route('contracts.dashboard') }}">
+            <i class="bi bi-speedometer2 nav-icon"></i>
+            Contract Dashboard
           </a>
         </li>
         <li class="nav-item">

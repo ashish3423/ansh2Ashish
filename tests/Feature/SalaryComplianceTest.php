@@ -43,7 +43,11 @@ class SalaryComplianceTest extends TestCase
             $table->string('work_location')->nullable();
             $table->decimal('wages_rate_per_day', 12, 2)->nullable();
             $table->unsignedTinyInteger('emp_type')->nullable();
+            $table->string('status')->default('active');
+            $table->timestamps();
         });
+        $employeeComplianceMigration = require base_path('database/migrations/2026_10_31_000001_add_epf_esi_eligibility_to_employees_table.php');
+        $employeeComplianceMigration->up();
         Schema::connection('sqlite')->create('employee_salaries', function ($table) {
             $table->id();
             $table->unsignedBigInteger('employee_id');
@@ -67,6 +71,8 @@ class SalaryComplianceTest extends TestCase
         $holidayOptionsMigration->up();
         $contractExtensionMigration = require base_path('database/migrations/2026_10_31_000000_add_extension_date_and_holiday_percentages_to_contracts_table.php');
         $contractExtensionMigration->up();
+        $contractCategoryBonusMigration = require base_path('database/migrations/2026_10_31_000002_add_category_and_bonus_to_contracts_table.php');
+        $contractCategoryBonusMigration->up();
         Schema::connection('sqlite')->create('contract_service_assignments', function ($table) {
             $table->id();
             $table->unsignedBigInteger('contract_id');
@@ -80,6 +86,8 @@ class SalaryComplianceTest extends TestCase
         $salaryMigration->up();
         $totalSalaryMigration = require base_path('database/migrations/2026_10_27_000003_add_total_salary_to_employee_salaries_table.php');
         $totalSalaryMigration->up();
+        $contractBonusSalaryMigration = require base_path('database/migrations/2026_10_31_000003_add_contract_bonus_amount_to_employee_salaries_table.php');
+        $contractBonusSalaryMigration->up();
 
         Schema::connection('sqlite')->create('employee_compliance_settings', function ($table) {
             $table->id();
@@ -265,6 +273,143 @@ class SalaryComplianceTest extends TestCase
             'total_salary' => 2000,
             'esi_employee_contribution' => 0,
             'esi_employer_contribution' => 0,
+        ]);
+    }
+
+    public function test_employee_epf_and_esi_switches_independently_control_salary_contributions(): void
+    {
+        $user = User::factory()->create(['role' => User::ROLE_SUPER_ADMIN]);
+        $epfDisabledEmployeeId = DB::table('employees')->insertGetId([
+            'employee_code' => 'EMP-EPF-OFF',
+            'first_name' => 'EPF Disabled',
+            'wages_rate_per_day' => 100,
+            'epf_enabled' => false,
+            'esi_enabled' => true,
+        ]);
+        $esiDisabledEmployeeId = DB::table('employees')->insertGetId([
+            'employee_code' => 'EMP-ESI-OFF',
+            'first_name' => 'ESI Disabled',
+            'wages_rate_per_day' => 100,
+            'epf_enabled' => true,
+            'esi_enabled' => false,
+        ]);
+
+        $this->actingAs($user);
+        foreach ([$epfDisabledEmployeeId, $esiDisabledEmployeeId] as $employeeId) {
+            $this->postJson(route('employee-salaries.store'), [
+                'employee_id' => $employeeId,
+                'salary_month' => now()->month,
+                'salary_year' => now()->year,
+                'working_days' => 20,
+            ])->assertOk();
+        }
+
+        $this->assertDatabaseHas('employee_salaries', [
+            'employee_id' => $epfDisabledEmployeeId,
+            'epf_employee_contribution' => 0,
+            'epf_employer_contribution' => 0,
+            'esi_employee_contribution' => 20,
+            'esi_employer_contribution' => 40,
+            'gross_salary' => 2040,
+            'deductions' => 20,
+            'net_salary' => 1980,
+        ]);
+        $this->assertDatabaseHas('employee_salaries', [
+            'employee_id' => $esiDisabledEmployeeId,
+            'epf_employee_contribution' => 200,
+            'epf_employer_contribution' => 240,
+            'esi_employee_contribution' => 0,
+            'esi_employer_contribution' => 0,
+            'gross_salary' => 2240,
+            'deductions' => 200,
+            'net_salary' => 1800,
+        ]);
+
+        $this->get(route('employee-salaries.index'))
+            ->assertOk()
+            ->assertSee('data-epf-enabled="0"', false)
+            ->assertSee('data-esi-enabled="1"', false)
+            ->assertSee('data-epf-enabled="1"', false)
+            ->assertSee('data-esi-enabled="0"', false)
+            ->assertSee('data-compliance-field="epf"', false)
+            ->assertSee('data-compliance-field="esi"', false);
+    }
+
+    public function test_enabled_contract_bonus_percentage_is_added_to_salary_calculation(): void
+    {
+        $user = User::factory()->create(['role' => User::ROLE_SUPER_ADMIN]);
+        $employeeId = DB::table('employees')->insertGetId([
+            'employee_code' => 'EMP-CONTRACT-BONUS',
+            'first_name' => 'Contract Bonus',
+            'wages_rate_per_day' => 100,
+        ]);
+        DB::table('contracts')->insert([
+            'employee_id' => $employeeId,
+            'contract_number' => 'CON-BONUS-10',
+            'contract_type' => 'Manpower',
+            'contract_category' => 'regular_contract',
+            'start_date' => '2026-01-01',
+            'status' => 'active',
+            'bonus_enabled' => true,
+            'bonus_percentage' => 10,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->postJson(route('employee-salaries.store'), [
+                'employee_id' => $employeeId,
+                'salary_month' => now()->month,
+                'salary_year' => now()->year,
+                'working_days' => 20,
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('employee_salaries', [
+            'employee_id' => $employeeId,
+            'total_salary' => 2000,
+            'bonus_amount' => 0,
+            'contract_bonus_amount' => 200,
+            'epf_employee_contribution' => 200,
+            'epf_employer_contribution' => 240,
+            'esi_employee_contribution' => 20,
+            'esi_employer_contribution' => 40,
+            'gross_salary' => 2480,
+            'deductions' => 220,
+            'net_salary' => 1980,
+        ]);
+
+        $this->get(route('employee-salaries.index'))
+            ->assertOk()
+            ->assertSee('data-contract-bonus-enabled="1"', false)
+            ->assertSee('data-contract-bonus-percentage="10"', false);
+    }
+
+    public function test_employee_edit_can_disable_epf_and_esi_switches(): void
+    {
+        $user = User::factory()->create(['role' => User::ROLE_SUPER_ADMIN]);
+        $employeeId = DB::table('employees')->insertGetId([
+            'employee_code' => 'EMP-EDIT-COMPLIANCE',
+            'first_name' => 'Edit Compliance',
+            'status' => 'active',
+            'epf_enabled' => true,
+            'esi_enabled' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->putJson(route('employees.update', $employeeId), [
+                'first_name' => 'Edit Compliance',
+                'status' => 'active',
+            ])
+            ->assertOk()
+            ->assertJson(['message' => 'Employee updated successfully.']);
+
+        $this->assertDatabaseHas('employees', [
+            'id' => $employeeId,
+            'epf_enabled' => false,
+            'esi_enabled' => false,
         ]);
     }
 
@@ -521,7 +666,7 @@ class SalaryComplianceTest extends TestCase
         ]);
         foreach ([
             [now()->startOfMonth()->toDateString(), 1000],
-            [now()->subMonth()->startOfMonth()->toDateString(), 500],
+            [now()->startOfMonth()->subMonthNoOverflow()->toDateString(), 500],
         ] as [$period, $salary]) {
             DB::table('employee_salaries')->insert([
                 'employee_id' => $employeeId,
@@ -554,7 +699,7 @@ class SalaryComplianceTest extends TestCase
         ]);
         foreach ([
             [now()->startOfMonth()->toDateString(), 1000],
-            [now()->subMonth()->startOfMonth()->toDateString(), 500],
+            [now()->startOfMonth()->subMonthNoOverflow()->toDateString(), 500],
         ] as [$period, $salary]) {
             DB::table('employee_salaries')->insert([
                 'employee_id' => $employeeId,
